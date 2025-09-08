@@ -19,7 +19,7 @@ const StudentEarnings = () => {
       id: 1,
       type: "payment_received",
       project: "Logo Design for Chai Corner",
-      client: "Chai Corner",
+      client: "Rajesh Kumar - Chai Corner",
       amount: "₹2,000",
       status: "completed",
       date: "2024-11-25",
@@ -29,7 +29,7 @@ const StudentEarnings = () => {
       id: 2,
       type: "payment_pending",
       project: "Simple Portfolio Website", 
-      client: "Small Business Owner",
+      client: "Priya Nair - Digital Solutions",
       amount: "₹4,200",
       status: "pending",
       date: "2024-11-24",
@@ -39,7 +39,7 @@ const StudentEarnings = () => {
       id: 3,
       type: "payment_received",
       project: "Instagram Post Designs",
-      client: "Fitness Trainer",
+      client: "Anita Gupta - Fitness Studio",
       amount: "₹2,000",
       status: "completed",
       date: "2024-11-20",
@@ -49,7 +49,7 @@ const StudentEarnings = () => {
       id: 4,
       type: "payment_received",
       project: "Social Media Graphics",
-      client: "Local Restaurant", 
+      client: "Amit Sharma - Spice Garden",
       amount: "₹1,800",
       status: "completed",
       date: "2024-11-18",
@@ -59,7 +59,7 @@ const StudentEarnings = () => {
       id: 5,
       type: "payment_received",
       project: "WordPress Blog Setup",
-      client: "Food Blogger",
+      client: "Kavya Menon - Food Blog",
       amount: "₹3,800",
       status: "completed",
       date: "2024-11-15",
@@ -310,7 +310,7 @@ const StudentEarnings = () => {
               </div>
               <div>
                 <p className="font-medium text-gray-900">UPI</p>
-                <p className="text-sm text-gray-600">priya@paytm</p>
+                <p className="text-sm text-gray-600">shreeharsha@paytm</p>
               </div>
             </div>
             <button className="text-indigo-600 hover:text-indigo-700 text-sm">

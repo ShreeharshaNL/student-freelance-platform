@@ -39,21 +39,21 @@ const Home = () => {
 
   const testimonials = [
     {
-      name: "Sarah Johnson",
-      role: "Computer Science Student",
-      content: "This platform helped me land my first freelance project! The support from mentors was incredible.",
+      name: "Yogesh S",
+      role: "Computer Science Student, NIE Mysore",
+      content: "This platform helped me land my first freelance project! The support from mentors was incredible and I earned ₹15,000 in my first month.",
       rating: 5
     },
     {
-      name: "Mike Chen",
-      role: "Startup Founder",
-      content: "Found amazing talent here. Students are eager, creative, and deliver quality work at fair prices.",
+      name: "Shresth Juptimath",
+      role: "Startup Founder, Bangalore",
+      content: "Found amazing talent here. Students are eager, creative, and deliver quality work at fair prices. Perfect for Indian startups!",
       rating: 5
     },
     {
-      name: "Emma Rodriguez",
-      role: "Design Student",
-      content: "I've completed 15+ projects and built an impressive portfolio. Highly recommend!",
+      name: "Sujeet Kulkarni",
+      role: "Design Student, NIE Mysore",
+      content: "I've completed 20+ projects and built an impressive portfolio. Now I earn ₹25,000+ monthly while studying. Highly recommend!",
       rating: 5
     }
   ];

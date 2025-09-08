@@ -19,7 +19,7 @@ const Messages = ({ userType = "student" }) => {
     },
     {
       id: 2,
-      name: userType === "student" ? "Small Business Owner" : "Rahul Kumar", 
+      name: userType === "student" ? "Priya Nair - Digital Solutions" : "Rahul Kumar",
       avatar: userType === "student" ? "SB" : "RK",
       lastMessage: "Can you share some examples of your previous work?",
       time: "1 hour ago",

@@ -45,7 +45,7 @@ const StudentDashboard = () => {
     {
       id: 1,
       title: "Simple Portfolio Website",
-      client: "Small Business Owner",
+      client: "Priya Nair - Digital Solutions",
       budget: "4,500",
       status: "in_progress",
       deadline: "Dec 15, 2024",
@@ -56,7 +56,7 @@ const StudentDashboard = () => {
     {
       id: 2,
       title: "Logo Design for Local Cafe",
-      client: "Chai Corner",
+      client: "Rajesh Kumar - Chai Corner",
       budget: "2,000",
       status: "completed",
       deadline: "Nov 30, 2024",
@@ -67,7 +67,7 @@ const StudentDashboard = () => {
     {
       id: 3,
       title: "Social Media Graphics",
-      client: "Local Restaurant",
+      client: "Amit Sharma - Spice Garden",
       budget: "1,800",
       status: "in_progress",
       deadline: "Dec 10, 2024",
@@ -79,9 +79,9 @@ const StudentDashboard = () => {
 
   const recentActivities = [
     { type: "application", message: "Applied to 'WordPress website needed'", time: "2 hours ago", icon: "📝" },
-    { type: "message", message: "New message from Small Business Owner", time: "4 hours ago", icon: "💬" },
+    { type: "message", message: "New message from Priya Nair", time: "4 hours ago", icon: "💬" },
     { type: "payment", message: "Payment received: ₹2,000", time: "1 day ago", icon: "💰" },
-    { type: "review", message: "New review from Chai Corner (5⭐)", time: "2 days ago", icon: "⭐" },
+    { type: "review", message: "New review from Rajesh Kumar (5⭐)", time: "2 days ago", icon: "⭐" },
     { type: "project", message: "Project 'Logo Design' completed", time: "3 days ago", icon: "✅" }
   ];
 

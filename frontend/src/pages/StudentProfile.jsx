@@ -67,7 +67,7 @@ const StudentProfile = () => {
     reviews: [
       {
         id: 1,
-        clientName: "Chai Corner",
+        clientName: "Rajesh Kumar - Chai Corner",
         rating: 5,
         comment: "Excellent work! Shreeharsha delivered exactly what we wanted. The logo is perfect for our brand.",
         project: "Logo Design",
@@ -75,7 +75,7 @@ const StudentProfile = () => {
       },
       {
         id: 2,
-        clientName: "Small Business Owner",
+        clientName: "Priya Nair - Digital Solutions",
         rating: 4,
         comment: "Great communication and delivered on time. Very happy with the website.",
         project: "Portfolio Website",
