@@ -1,9 +1,10 @@
 import React, { useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 
 const DashboardLayout = ({ children, userType = "student" }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
 
   const studentNavItems = [
     { name: "Dashboard", href: "/student/dashboard", icon: "📊" },
@@ -29,6 +30,57 @@ const DashboardLayout = ({ children, userType = "student" }) => {
 
   const isActiveLink = (href) => {
     return location.pathname === href;
+  };
+
+  // Logout handler
+  const handleLogout = async () => {
+    try {
+      // Call backend logout endpoint
+      const token = localStorage.getItem('token'); // Based on your auth structure
+      
+      const response = await fetch('/api/auth/logout', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      const result = await response.json();
+      
+      // Clear authentication data from localStorage
+      localStorage.removeItem('token'); // Your auth uses 'token' not 'authToken'
+      localStorage.removeItem('user');
+      localStorage.removeItem('userType');
+      
+      // Clear authentication data from sessionStorage
+      sessionStorage.removeItem('token');
+      sessionStorage.removeItem('user');
+      
+      if (result.success) {
+        console.log('Logged out successfully');
+      }
+      
+      // Redirect to login page
+      navigate('/', { replace: true });
+      
+    } catch (error) {
+      console.error('Logout failed:', error);
+      
+      // Even if the API call fails, clear local data and redirect
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      localStorage.removeItem('userType');
+      sessionStorage.clear();
+      navigate('/', { replace: true });
+    }
+  };
+
+  // Confirmation logout handler (optional)
+  const handleLogoutWithConfirmation = () => {
+    if (window.confirm('Are you sure you want to sign out?')) {
+      handleLogout();
+    }
   };
 
   return (
@@ -88,8 +140,9 @@ const DashboardLayout = ({ children, userType = "student" }) => {
                 Settings
               </Link>
               <button
-                className="flex items-center w-full px-4 py-3 text-sm font-medium text-gray-600 rounded-lg hover:bg-gray-50 hover:text-gray-900 transition-colors"
-                onClick={() => {/* Handle logout */}}
+                className="flex items-center w-full px-4 py-3 text-sm font-medium text-gray-600 rounded-lg hover:bg-red-50 hover:text-red-700 transition-colors"
+                onClick={handleLogout}
+                // Alternative with confirmation: onClick={handleLogoutWithConfirmation}
               >
                 <span className="mr-3 text-lg">🚪</span>
                 Sign Out

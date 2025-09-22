@@ -1,6 +1,8 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { AuthProvider } from "./context/AuthContext.jsx";
+import { StudentRoute, ClientRoute, AuthenticatedRoute } from "./components/ProtectedRoute.jsx";
 import Home from "./components/Home.jsx";
 import Login from "./pages/Login.jsx";
 import Signup from "./pages/Signup.jsx";
@@ -22,30 +24,85 @@ import "./index.css";
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
     <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/signup" element={<Signup />} />
-        
-        {/* Student Routes */}
-        <Route path="/student/dashboard" element={<StudentDashboard />} />
-        <Route path="/student/profile" element={<StudentProfile />} />
-        <Route path="/student/applications" element={<StudentApplications />} />
-        <Route path="/student/active-projects" element={<StudentActiveProjects />} />
-        <Route path="/student/messages" element={<StudentMessages />} />
-        <Route path="/student/earnings" element={<StudentEarnings />} />
-        
-        {/* Client Routes */}
-        <Route path="/client/dashboard" element={<ClientDashboard />} />
-        <Route path="/client/profile" element={<ClientProfile />} />
-        <Route path="/client/post-project" element={<PostProject />} />
-        <Route path="/client/applications" element={<ClientApplications />} />
-        <Route path="/client/messages" element={<ClientMessages />} />
-        
-        {/* General Routes */}
-        <Route path="/projects" element={<ProjectsPage />} />
-        <Route path="/project/:id" element={<ProjectDetail />} />
-      </Routes>
+      <AuthProvider>
+        <Routes>
+          {/* Public Routes */}
+          <Route path="/" element={<Home />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<Signup />} />
+          
+          {/* Student Protected Routes */}
+          <Route path="/student/dashboard" element={
+            <StudentRoute>
+              <StudentDashboard />
+            </StudentRoute>
+          } />
+          <Route path="/student/profile" element={
+            <StudentRoute>
+              <StudentProfile />
+            </StudentRoute>
+          } />
+          <Route path="/student/applications" element={
+            <StudentRoute>
+              <StudentApplications />
+            </StudentRoute>
+          } />
+          <Route path="/student/active-projects" element={
+            <StudentRoute>
+              <StudentActiveProjects />
+            </StudentRoute>
+          } />
+          <Route path="/student/messages" element={
+            <StudentRoute>
+              <StudentMessages />
+            </StudentRoute>
+          } />
+          <Route path="/student/earnings" element={
+            <StudentRoute>
+              <StudentEarnings />
+            </StudentRoute>
+          } />
+          
+          {/* Client Protected Routes */}
+          <Route path="/client/dashboard" element={
+            <ClientRoute>
+              <ClientDashboard />
+            </ClientRoute>
+          } />
+          <Route path="/client/profile" element={
+            <ClientRoute>
+              <ClientProfile />
+            </ClientRoute>
+          } />
+          <Route path="/client/post-project" element={
+            <ClientRoute>
+              <PostProject />
+            </ClientRoute>
+          } />
+          <Route path="/client/applications" element={
+            <ClientRoute>
+              <ClientApplications />
+            </ClientRoute>
+          } />
+          <Route path="/client/messages" element={
+            <ClientRoute>
+              <ClientMessages />
+            </ClientRoute>
+          } />
+          
+          {/* General Authenticated Routes */}
+          <Route path="/projects" element={
+            <AuthenticatedRoute>
+              <ProjectsPage />
+            </AuthenticatedRoute>
+          } />
+          <Route path="/project/:id" element={
+            <AuthenticatedRoute>
+              <ProjectDetail />
+            </AuthenticatedRoute>
+          } />
+        </Routes>
+      </AuthProvider>
     </BrowserRouter>
   </React.StrictMode>
 );
