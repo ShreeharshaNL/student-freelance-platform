@@ -73,11 +73,15 @@ const StudentProfile = () => {
       setSaving(true);
       setError(null);
       
-      // Separate skills from basic profile data
-      const { skills, ...basicProfileData } = formData;
+      // Only send fields that the backend accepts for basic profile update
+      const profileUpdateData = {
+        name: formData.name,
+        bio: formData.bio,
+        location: formData.location
+      };
       
       // Update basic profile information
-      const response = await profileAPI.updateProfile(basicProfileData);
+      const response = await profileAPI.updateProfile(profileUpdateData);
       
       if (response.success) {
         // Update local state with new data
