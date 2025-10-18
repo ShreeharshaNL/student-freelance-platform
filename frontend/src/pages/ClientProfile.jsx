@@ -157,7 +157,19 @@ const ClientProfile = () => {
       setSaving(true);
       setError(null);
       
-      const response = await profileAPI.updateProfile(formData);
+      // Prepare data that matches backend expectations
+      const profileUpdateData = {
+        name: formData.name,
+        bio: formData.bio,
+        location: formData.location
+      };
+      
+      // Only include optional fields if they have values
+      if (formData.website) {
+        profileUpdateData.website = formData.website;
+      }
+      
+      const response = await profileAPI.updateProfile(profileUpdateData);
       
       if (response.success) {
         // Update local state with new data
@@ -166,11 +178,14 @@ const ClientProfile = () => {
           companyName: formData.name,
           description: formData.bio,
           location: formData.location,
-          website: formData.website,
-          companySize: formData.companySize,
-          industryType: formData.industryType
+          website: formData.website || prev.website,
+          companySize: formData.companySize || prev.companySize,
+          industryType: formData.industryType || prev.industryType
         }));
         setIsEditModalOpen(false);
+        
+        // Reload profile to get the latest data from server
+        await loadProfileData();
       } else {
         setError("Failed to save profile changes");
       }

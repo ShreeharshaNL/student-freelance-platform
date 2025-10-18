@@ -73,7 +73,11 @@ const StudentProfile = () => {
       setSaving(true);
       setError(null);
       
-      const response = await profileAPI.updateProfile(formData);
+      // Separate skills from basic profile data
+      const { skills, ...basicProfileData } = formData;
+      
+      // Update basic profile information
+      const response = await profileAPI.updateProfile(basicProfileData);
       
       if (response.success) {
         // Update local state with new data
@@ -82,9 +86,12 @@ const StudentProfile = () => {
           name: formData.name,
           bio: formData.bio,
           location: formData.location,
-          skills: formData.skills
+          skills: formData.skills || prev.skills
         }));
         setIsEditModalOpen(false);
+        
+        // Reload profile to get the latest data from server
+        await loadProfileData();
       } else {
         setError("Failed to save profile changes");
       }
