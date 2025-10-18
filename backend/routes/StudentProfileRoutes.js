@@ -29,7 +29,24 @@ const profileUpdateValidation = [
   body('profile_picture')
     .optional()
     .isURL()
-    .withMessage('Profile picture must be a valid URL')
+    .withMessage('Profile picture must be a valid URL'),
+  body('website')
+    .optional()
+    .isURL()
+    .withMessage('Website must be a valid URL'),
+  body('skills')
+    .optional()
+    .isArray()
+    .withMessage('Skills must be an array'),
+  body('skills.*.name')
+    .optional()
+    .trim()
+    .isLength({ min: 1, max: 50 })
+    .withMessage('Skill name must be between 1 and 50 characters'),
+  body('skills.*.level')
+    .optional()
+    .isInt({ min: 0, max: 100 })
+    .withMessage('Skill level must be between 0 and 100')
 ];
 
 // Validation rules for student profile updates

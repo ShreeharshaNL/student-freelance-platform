@@ -88,7 +88,12 @@ const apiRequest = async (endpoint, options = {}) => {
     }
 
     if (!response.ok) {
-      throw new Error(data.message || `HTTP ${response.status}`);
+      // Handle validation errors
+      if (response.status === 400 && data.errors) {
+        const errorMessage = data.errors.map(err => err.msg).join(', ');
+        throw new Error(errorMessage);
+      }
+      throw new Error(data.message || `HTTP ${response.status}: ${response.statusText}`);
     }
 
     return data;

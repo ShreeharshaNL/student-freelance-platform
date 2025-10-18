@@ -67,6 +67,14 @@ const EditProfileModal = ({
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    
+    // Basic validation
+    if (!formData.name || formData.name.trim() === '') {
+      alert('Please enter your name');
+      return;
+    }
+    
+    console.log('Form submitted with data:', formData); // Debug log
     onSave(formData);
   };
 

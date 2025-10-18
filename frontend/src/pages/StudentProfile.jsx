@@ -82,6 +82,13 @@ const StudentProfile = () => {
       
       // Update basic profile information
       const response = await profileAPI.updateProfile(profileUpdateData);
+
+      console.log('Saving profile data:', formData); // Debug log
+      
+      const response = await profileAPI.updateProfile(formData);
+
+      
+      console.log('Profile update response:', response); // Debug log
       
       if (response.success) {
         // Update local state with new data
@@ -97,11 +104,11 @@ const StudentProfile = () => {
         // Reload profile to get the latest data from server
         await loadProfileData();
       } else {
-        setError("Failed to save profile changes");
+        setError(response.message || "Failed to save profile changes");
       }
     } catch (err) {
       console.error('Error saving profile:', err);
-      setError("Error saving profile changes");
+      setError(err.message || "Error saving profile changes");
     } finally {
       setSaving(false);
     }
