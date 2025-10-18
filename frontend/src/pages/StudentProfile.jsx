@@ -1,15 +1,15 @@
 import React, { useState, useEffect } from "react";
 import DashboardLayout from "../components/DashboardLayout";
+import EditProfileModal from "../components/EditProfileModal";
 import { profileAPI } from "../utils/auth";
 
 const StudentProfile = () => {
   const [activeTab, setActiveTab] = useState("overview");
-  const [isEditing, setIsEditing] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
   const [studentData, setStudentData] = useState(null);
-  const [editData, setEditData] = useState({});
 
   // Load profile data on component mount
   useEffect(() => {
@@ -60,36 +60,31 @@ const StudentProfile = () => {
     }
   };
 
-  const handleEdit = () => {
-    if (isEditing) {
-      // Save changes
-      saveProfile();
-    } else {
-      // Start editing
-      setEditData({
-        bio: studentData.bio,
-        name: studentData.name,
-        location: studentData.location
-      });
-      setIsEditing(true);
-    }
+  const handleEditClick = () => {
+    setIsEditModalOpen(true);
   };
 
-  const saveProfile = async () => {
+  const handleModalClose = () => {
+    setIsEditModalOpen(false);
+  };
+
+  const handleSaveProfile = async (formData) => {
     try {
       setSaving(true);
       setError(null);
       
-      const response = await profileAPI.updateProfile(editData);
+      const response = await profileAPI.updateProfile(formData);
       
       if (response.success) {
         // Update local state with new data
         setStudentData(prev => ({
           ...prev,
-          ...editData
+          name: formData.name,
+          bio: formData.bio,
+          location: formData.location,
+          skills: formData.skills
         }));
-        setIsEditing(false);
-        setEditData({});
+        setIsEditModalOpen(false);
       } else {
         setError("Failed to save profile changes");
       }
@@ -99,13 +94,6 @@ const StudentProfile = () => {
     } finally {
       setSaving(false);
     }
-  };
-
-  const handleInputChange = (field, value) => {
-    setEditData(prev => ({
-      ...prev,
-      [field]: value
-    }));
   };
 
   const tabs = [
@@ -130,29 +118,26 @@ const StudentProfile = () => {
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-lg font-semibold text-gray-900">About</h3>
           <button
-            onClick={handleEdit}
-            disabled={saving}
-            className="text-indigo-600 hover:text-indigo-700 text-sm font-medium disabled:opacity-50"
+            onClick={handleEditClick}
+            className="text-indigo-600 hover:text-indigo-700 text-sm font-medium"
           >
-            {saving ? "Saving..." : isEditing ? "Save" : "Edit"}
+            Edit
           </button>
         </div>
-        {isEditing ? (
-          <textarea
-            className="w-full p-3 border rounded-lg resize-none"
-            rows="4"
-            value={editData.bio || ""}
-            onChange={(e) => handleInputChange('bio', e.target.value)}
-            placeholder="Tell us about yourself..."
-          />
-        ) : (
-          <p className="text-gray-600 leading-relaxed">{studentData.bio}</p>
-        )}
+        <p className="text-gray-600 leading-relaxed">{studentData.bio}</p>
       </div>
 
       {/* Skills Section */}
       <div className="bg-white p-6 rounded-xl shadow-sm border">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Skills</h3>
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-semibold text-gray-900">Skills</h3>
+          <button
+            onClick={handleEditClick}
+            className="text-indigo-600 hover:text-indigo-700 text-sm font-medium"
+          >
+            Edit Skills
+          </button>
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {studentData.skills.map((skill, index) => (
             <div key={index} className="space-y-2">
@@ -367,40 +352,18 @@ const StudentProfile = () => {
             <div className="flex-1">
               <div className="flex flex-col md:flex-row md:items-start md:justify-between mb-4">
                 <div>
-                  {isEditing ? (
-                    <div className="space-y-2">
-                      <input
-                        type="text"
-                        value={editData.name || ""}
-                        onChange={(e) => handleInputChange('name', e.target.value)}
-                        className="text-2xl font-bold text-gray-900 bg-transparent border-b border-gray-300 focus:border-indigo-600 focus:outline-none"
-                        placeholder="Your name"
-                      />
-                      <input
-                        type="text"
-                        value={editData.location || ""}
-                        onChange={(e) => handleInputChange('location', e.target.value)}
-                        className="text-sm text-gray-500 bg-transparent border-b border-gray-300 focus:border-indigo-600 focus:outline-none"
-                        placeholder="Your location"
-                      />
-                    </div>
-                  ) : (
-                    <>
-                      <h1 className="text-2xl font-bold text-gray-900">{studentData.name}</h1>
-                      <p className="text-lg text-gray-600">{studentData.title}</p>
-                      <div className="flex items-center gap-4 mt-2 text-sm text-gray-500">
-                        <span>📍 {studentData.location}</span>
-                        <span>📅 Joined {studentData.joinDate}</span>
-                      </div>
-                    </>
-                  )}
+                  <h1 className="text-2xl font-bold text-gray-900">{studentData.name}</h1>
+                  <p className="text-lg text-gray-600">{studentData.title}</p>
+                  <div className="flex items-center gap-4 mt-2 text-sm text-gray-500">
+                    <span>📍 {studentData.location}</span>
+                    <span>📅 Joined {studentData.joinDate}</span>
+                  </div>
                 </div>
                 <button 
-                  onClick={handleEdit}
-                  disabled={saving}
-                  className="mt-4 md:mt-0 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50"
+                  onClick={handleEditClick}
+                  className="mt-4 md:mt-0 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
                 >
-                  {saving ? "Saving..." : isEditing ? "Save Changes" : "Edit Profile"}
+                  Edit Profile
                 </button>
               </div>
 
@@ -453,6 +416,16 @@ const StudentProfile = () => {
           </div>
         </div>
       </div>
+
+      {/* Edit Profile Modal */}
+      <EditProfileModal
+        isOpen={isEditModalOpen}
+        onClose={handleModalClose}
+        onSave={handleSaveProfile}
+        userType="student"
+        initialData={studentData}
+        loading={saving}
+      />
     </DashboardLayout>
   );
 };
