@@ -1,27 +1,45 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import DashboardLayout from "../components/DashboardLayout";
 import ProjectCard from "../components/ProjectCard";
+import { profileAPI } from "../utils/auth";
 
 const ClientProfile = () => {
   const [activeTab, setActiveTab] = useState("overview");
   const [isEditing, setIsEditing] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState(null);
+  const [clientData, setClientData] = useState(null);
+  const [editData, setEditData] = useState({});
 
-  // Mock client data
-  const clientData = {
-    companyName: "TechCorp India",
-    industryType: "Technology Services",
-    location: "Bangalore, Karnataka",
-    joinDate: "January 2024",
-    website: "www.techcorp.in",
-    companySize: "10-50 employees",
-    profileImage: null,
-    rating: 4.7,
-    totalReviews: 9,
-    projectsPosted: 12,
-    totalSpent: "₹28,500",
-    hiredStudents: 15,
-    responseTime: "4 hours",
-    description: "TechCorp is a growing technology services company based in Bangalore. We specialize in web development, mobile applications, and digital marketing solutions for small to medium businesses across India. We believe in giving opportunities to talented students and helping them grow their careers.",
+  // Load profile data on component mount
+  useEffect(() => {
+    loadProfileData();
+  }, []);
+
+  const loadProfileData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await profileAPI.getProfile();
+      
+      if (response.success) {
+        const user = response.data.user;
+        setClientData({
+          companyName: user.name || "Company",
+          industryType: "Technology Services", // This would come from client profile
+          location: user.location || "Not specified",
+          joinDate: new Date(user.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
+          website: "www.example.com", // This would come from client profile
+          companySize: "10-50 employees", // This would come from client profile
+          profileImage: user.profile_picture,
+          rating: user.rating || 0,
+          totalReviews: user.total_reviews || 0,
+          projectsPosted: 0, // This would come from projects count
+          totalSpent: "₹0", // This would come from payments
+          hiredStudents: 0, // This would come from assignments
+          responseTime: "4 hours", // This would come from settings
+          description: user.bio || "No company description available",
     
     postedProjects: [
       {
@@ -108,12 +126,72 @@ const ClientProfile = () => {
       }
     ],
 
-    stats: [
-      { category: "Web Development", projects: 5, avgBudget: "₹4,200" },
-      { category: "Graphic Design", projects: 3, avgBudget: "₹2,500" },
-      { category: "Content Writing", projects: 2, avgBudget: "₹1,800" },
-      { category: "Data Entry", projects: 2, avgBudget: "₹1,500" }
-    ]
+          stats: [
+            { category: "Web Development", projects: 0, avgBudget: "₹0" },
+            { category: "Graphic Design", projects: 0, avgBudget: "₹0" },
+            { category: "Content Writing", projects: 0, avgBudget: "₹0" },
+            { category: "Data Entry", projects: 0, avgBudget: "₹0" }
+          ]
+        });
+      } else {
+        setError("Failed to load profile data");
+      }
+    } catch (err) {
+      console.error('Error loading profile:', err);
+      setError("Error loading profile data");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleEdit = () => {
+    if (isEditing) {
+      // Save changes
+      saveProfile();
+    } else {
+      // Start editing
+      setEditData({
+        bio: clientData.description,
+        name: clientData.companyName,
+        location: clientData.location
+      });
+      setIsEditing(true);
+    }
+  };
+
+  const saveProfile = async () => {
+    try {
+      setSaving(true);
+      setError(null);
+      
+      const response = await profileAPI.updateProfile(editData);
+      
+      if (response.success) {
+        // Update local state with new data
+        setClientData(prev => ({
+          ...prev,
+          companyName: editData.name || prev.companyName,
+          description: editData.bio || prev.description,
+          location: editData.location || prev.location
+        }));
+        setIsEditing(false);
+        setEditData({});
+      } else {
+        setError("Failed to save profile changes");
+      }
+    } catch (err) {
+      console.error('Error saving profile:', err);
+      setError("Error saving profile changes");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleInputChange = (field, value) => {
+    setEditData(prev => ({
+      ...prev,
+      [field]: value
+    }));
   };
 
   const tabs = [
@@ -138,17 +216,20 @@ const ClientProfile = () => {
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-lg font-semibold text-gray-900">About Company</h3>
           <button
-            onClick={() => setIsEditing(!isEditing)}
-            className="text-indigo-600 hover:text-indigo-700 text-sm font-medium"
+            onClick={handleEdit}
+            disabled={saving}
+            className="text-indigo-600 hover:text-indigo-700 text-sm font-medium disabled:opacity-50"
           >
-            {isEditing ? "Save" : "Edit"}
+            {saving ? "Saving..." : isEditing ? "Save" : "Edit"}
           </button>
         </div>
         {isEditing ? (
           <textarea
             className="w-full p-3 border rounded-lg resize-none"
             rows="4"
-            defaultValue={clientData.description}
+            value={editData.bio || ""}
+            onChange={(e) => handleInputChange('bio', e.target.value)}
+            placeholder="Tell us about your company..."
           />
         ) : (
           <p className="text-gray-600 leading-relaxed">{clientData.description}</p>
@@ -315,9 +396,64 @@ const ClientProfile = () => {
     </div>
   );
 
+  if (loading) {
+    return (
+      <DashboardLayout userType="client">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+            <p className="mt-4 text-gray-600">Loading profile...</p>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  if (error) {
+    return (
+      <DashboardLayout userType="client">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <div className="text-red-500 text-6xl mb-4">⚠️</div>
+            <p className="text-red-600 mb-4">{error}</p>
+            <button 
+              onClick={loadProfileData}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              Try Again
+            </button>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  if (!clientData) {
+    return (
+      <DashboardLayout userType="client">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <div className="text-gray-500 text-6xl mb-4">🏢</div>
+            <p className="text-gray-600">No profile data available</p>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
   return (
     <DashboardLayout userType="client">
       <div className="space-y-6">
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+            <div className="flex">
+              <div className="text-red-400">⚠️</div>
+              <div className="ml-3">
+                <p className="text-red-800">{error}</p>
+              </div>
+            </div>
+          </div>
+        )}
         {/* Profile Header */}
         <div className="bg-white p-6 rounded-xl shadow-sm border">
           <div className="flex flex-col md:flex-row gap-6">
@@ -332,15 +468,40 @@ const ClientProfile = () => {
             <div className="flex-1">
               <div className="flex flex-col md:flex-row md:items-start md:justify-between mb-4">
                 <div>
-                  <h1 className="text-2xl font-bold text-gray-900">{clientData.companyName}</h1>
-                  <p className="text-lg text-gray-600">{clientData.industryType}</p>
-                  <div className="flex items-center gap-4 mt-2 text-sm text-gray-500">
-                    <span>📍 {clientData.location}</span>
-                    <span>📅 Member since {clientData.joinDate}</span>
-                  </div>
+                  {isEditing ? (
+                    <div className="space-y-2">
+                      <input
+                        type="text"
+                        value={editData.name || ""}
+                        onChange={(e) => handleInputChange('name', e.target.value)}
+                        className="text-2xl font-bold text-gray-900 bg-transparent border-b border-gray-300 focus:border-blue-600 focus:outline-none"
+                        placeholder="Company name"
+                      />
+                      <input
+                        type="text"
+                        value={editData.location || ""}
+                        onChange={(e) => handleInputChange('location', e.target.value)}
+                        className="text-sm text-gray-500 bg-transparent border-b border-gray-300 focus:border-blue-600 focus:outline-none"
+                        placeholder="Company location"
+                      />
+                    </div>
+                  ) : (
+                    <>
+                      <h1 className="text-2xl font-bold text-gray-900">{clientData.companyName}</h1>
+                      <p className="text-lg text-gray-600">{clientData.industryType}</p>
+                      <div className="flex items-center gap-4 mt-2 text-sm text-gray-500">
+                        <span>📍 {clientData.location}</span>
+                        <span>📅 Member since {clientData.joinDate}</span>
+                      </div>
+                    </>
+                  )}
                 </div>
-                <button className="mt-4 md:mt-0 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-                  Edit Profile
+                <button 
+                  onClick={handleEdit}
+                  disabled={saving}
+                  className="mt-4 md:mt-0 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+                >
+                  {saving ? "Saving..." : isEditing ? "Save Changes" : "Edit Profile"}
                 </button>
               </div>
 

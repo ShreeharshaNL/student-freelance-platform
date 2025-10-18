@@ -200,3 +200,51 @@ export const getCurrentUser = () => {
     role: payload.role
   } : null;
 };
+
+// Profile API functions
+export const profileAPI = {
+  // Get current user's profile
+  getProfile: async () => {
+    return apiRequest('/student-profile', {
+      method: 'GET'
+    });
+  },
+
+  // Update basic profile information
+  updateProfile: async (profileData) => {
+    return apiRequest('/student-profile', {
+      method: 'PUT',
+      body: JSON.stringify(profileData)
+    });
+  },
+
+  // Update student-specific profile
+  updateStudentProfile: async (studentData) => {
+    return apiRequest('/student-profile/student', {
+      method: 'PUT',
+      body: JSON.stringify(studentData)
+    });
+  },
+
+  // Get all available skills
+  getAllSkills: async () => {
+    return apiRequest('/student-profile/skills', {
+      method: 'GET'
+    });
+  },
+
+  // Add skill to user
+  addSkill: async (skillData) => {
+    return apiRequest('/student-profile/skills', {
+      method: 'POST',
+      body: JSON.stringify(skillData)
+    });
+  },
+
+  // Remove skill from user
+  removeSkill: async (skillId) => {
+    return apiRequest(`/student-profile/skills/${skillId}`, {
+      method: 'DELETE'
+    });
+  }
+};

@@ -36,9 +36,9 @@ const DashboardLayout = ({ children, userType = "student" }) => {
   const handleLogout = async () => {
     try {
       // Call backend logout endpoint
-      const token = localStorage.getItem('token'); // Based on your auth structure
+      const token = localStorage.getItem('authToken'); // Use consistent token key
       
-      const response = await fetch('/api/auth/logout', {
+      const response = await fetch('http://localhost:5000/api/auth/logout', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -49,12 +49,12 @@ const DashboardLayout = ({ children, userType = "student" }) => {
       const result = await response.json();
       
       // Clear authentication data from localStorage
-      localStorage.removeItem('token'); // Your auth uses 'token' not 'authToken'
+      localStorage.removeItem('authToken'); // Use consistent token key
       localStorage.removeItem('user');
       localStorage.removeItem('userType');
       
       // Clear authentication data from sessionStorage
-      sessionStorage.removeItem('token');
+      sessionStorage.removeItem('authToken');
       sessionStorage.removeItem('user');
       
       if (result.success) {
@@ -68,7 +68,7 @@ const DashboardLayout = ({ children, userType = "student" }) => {
       console.error('Logout failed:', error);
       
       // Even if the API call fails, clear local data and redirect
-      localStorage.removeItem('token');
+      localStorage.removeItem('authToken');
       localStorage.removeItem('user');
       localStorage.removeItem('userType');
       sessionStorage.clear();

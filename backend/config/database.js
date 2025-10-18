@@ -6,8 +6,8 @@ dotenv.config();
 // Create connection pool for better performance
 const pool = mysql.createPool({
   host: process.env.DB_HOST || 'localhost',
-  user: process.env.DB_USER || 'root',
-  password: process.env.DB_PASSWORD || '@Shnl2005',
+  user: process.env.DB_USER || 'freelance_user',
+  password: process.env.DB_PASSWORD || 'password123',
   database: process.env.DB_NAME || 'student_freelance_platform',
   port: process.env.DB_PORT || 3306,
   waitForConnections: true,
