@@ -5,6 +5,7 @@ const { testConnection } = require('./config/database');
 
 // Import routes
 const authRoutes = require('./routes/auth');
+const profileRoutes = require('./routes/profile');
 
 dotenv.config();
 const app = express();
@@ -17,6 +18,7 @@ app.use(express.urlencoded({ extended: true }));
 // Routes
 app.get("/", (req, res) => res.send("Backend running 🚀"));
 app.use('/api/auth', authRoutes);
+app.use('/api/profile', profileRoutes);
 
 // Test database connection and start server
 const startServer = async () => {
