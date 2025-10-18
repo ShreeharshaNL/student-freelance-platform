@@ -19,7 +19,25 @@ class StudentProfileModel {
         [userId]
       );
       
-      user.skills = skills;
+      // Transform skills to match frontend format
+      user.skills = skills.map(skill => {
+        // Map proficiency level to numeric level for frontend
+        let level = 25; // beginner
+        switch (skill.proficiency_level) {
+          case 'intermediate': level = 50; break;
+          case 'advanced': level = 75; break;
+          case 'expert': level = 90; break;
+          default: level = 25;
+        }
+        
+        return {
+          id: skill.id,
+          name: skill.name,
+          category: skill.category,
+          level: level,
+          projects: 0 // This would need to be calculated from actual project data
+        };
+      });
       
       return user;
     } catch (error) {
@@ -189,6 +207,63 @@ class StudentProfileModel {
       );
       
       return rows[0].count > 0;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  // Update user skills from frontend skills array
+  static async updateUserSkills(userId, skillsArray) {
+    try {
+      // First, clear all existing skills for this user
+      await promisePool.execute(
+        `DELETE FROM user_skills WHERE user_id = ?`,
+        [userId]
+      );
+
+      // If no skills provided, just return
+      if (!skillsArray || skillsArray.length === 0) {
+        return true;
+      }
+
+      // Process each skill
+      for (const skill of skillsArray) {
+        if (skill.name && skill.name.trim()) {
+          // Check if skill exists in skills table, if not create it
+          let [existingSkills] = await promisePool.execute(
+            `SELECT id FROM skills WHERE name = ?`,
+            [skill.name.trim()]
+          );
+
+          let skillId;
+          if (existingSkills.length === 0) {
+            // Create new skill
+            const [result] = await promisePool.execute(
+              `INSERT INTO skills (name, category) VALUES (?, 'Custom')`,
+              [skill.name.trim()]
+            );
+            skillId = result.insertId;
+          } else {
+            skillId = existingSkills[0].id;
+          }
+
+          // Map frontend level to database proficiency level
+          const level = parseInt(skill.level) || 50;
+          let proficiencyLevel = 'beginner';
+          if (level >= 80) proficiencyLevel = 'expert';
+          else if (level >= 60) proficiencyLevel = 'advanced';
+          else if (level >= 40) proficiencyLevel = 'intermediate';
+
+          // Add skill to user
+          await promisePool.execute(
+            `INSERT INTO user_skills (user_id, skill_id, proficiency_level, years_of_experience)
+             VALUES (?, ?, ?, ?)`,
+            [userId, skillId, proficiencyLevel, 0]
+          );
+        }
+      }
+
+      return true;
     } catch (error) {
       throw error;
     }
