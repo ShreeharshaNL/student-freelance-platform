@@ -69,50 +69,49 @@ const StudentProfile = () => {
   };
 
   const handleSaveProfile = async (formData) => {
-    try {
-      setSaving(true);
-      setError(null);
-      
-      // Only send fields that the backend accepts for basic profile update
-      const profileUpdateData = {
+  try {
+    setSaving(true);
+    setError(null);
+
+    console.log('Saving profile data:', formData); // Debug log
+
+    // Only send fields that the backend accepts for basic profile update
+    const profileUpdateData = {
+      name: formData.name,
+      bio: formData.bio,
+      location: formData.location,
+      skills: formData.skills
+    };
+
+    // Update basic profile information
+    const response = await profileAPI.updateProfile(profileUpdateData);
+
+    console.log('Profile update response:', response); // Debug log
+
+    if (response.success) {
+      // Update local state with new data
+      setStudentData((prev) => ({
+        ...prev,
         name: formData.name,
         bio: formData.bio,
-        location: formData.location
-      };
-      
-      // Update basic profile information
-      const response = await profileAPI.updateProfile(profileUpdateData);
+        location: formData.location,
+        skills: formData.skills || prev.skills,
+      }));
 
-      console.log('Saving profile data:', formData); // Debug log
-      
-      const response = await profileAPI.updateProfile(formData);
+      setIsEditModalOpen(false);
 
-      
-      console.log('Profile update response:', response); // Debug log
-      
-      if (response.success) {
-        // Update local state with new data
-        setStudentData(prev => ({
-          ...prev,
-          name: formData.name,
-          bio: formData.bio,
-          location: formData.location,
-          skills: formData.skills || prev.skills
-        }));
-        setIsEditModalOpen(false);
-        
-        // Reload profile to get the latest data from server
-        await loadProfileData();
-      } else {
-        setError(response.message || "Failed to save profile changes");
-      }
-    } catch (err) {
-      console.error('Error saving profile:', err);
-      setError(err.message || "Error saving profile changes");
-    } finally {
-      setSaving(false);
+      // Reload profile to get the latest data from server
+      await loadProfileData();
+    } else {
+      setError(response.message || "Failed to save profile changes");
     }
-  };
+  } catch (err) {
+    console.error('Error saving profile:', err);
+    setError(err.message || "Error saving profile changes");
+  } finally {
+    setSaving(false);
+  }
+};
 
   const tabs = [
     { id: "overview", label: "Overview", icon: "👤" },
