@@ -73,9 +73,20 @@ const StudentProfile = () => {
       setSaving(true);
       setError(null);
       
+      // Only send fields that the backend accepts for basic profile update
+      const profileUpdateData = {
+        name: formData.name,
+        bio: formData.bio,
+        location: formData.location
+      };
+      
+      // Update basic profile information
+      const response = await profileAPI.updateProfile(profileUpdateData);
+
       console.log('Saving profile data:', formData); // Debug log
       
       const response = await profileAPI.updateProfile(formData);
+
       
       console.log('Profile update response:', response); // Debug log
       
@@ -86,10 +97,11 @@ const StudentProfile = () => {
           name: formData.name,
           bio: formData.bio,
           location: formData.location,
-          skills: formData.skills
+          skills: formData.skills || prev.skills
         }));
         setIsEditModalOpen(false);
-        // Reload profile data to get the latest from server
+        
+        // Reload profile to get the latest data from server
         await loadProfileData();
       } else {
         setError(response.message || "Failed to save profile changes");
