@@ -65,7 +65,14 @@ class StudentProfileController {
       }
 
       const userId = req.user.id;
-      const updateData = req.body;
+      const updateData = { ...req.body };
+
+      // Handle skills separately if provided
+      let skillsToUpdate = null;
+      if (updateData.skills) {
+        skillsToUpdate = updateData.skills;
+        delete updateData.skills; // Remove from main update data
+      }
 
       // Remove any fields that shouldn't be updated directly
       delete updateData.id;
@@ -77,14 +84,22 @@ class StudentProfileController {
       delete updateData.is_verified; // Verification is admin-only
       delete updateData.created_at; // Created date cannot be changed
 
-      // Update user profile
-      const updated = await StudentProfileModel.updateUser(userId, updateData);
-      
-      if (!updated) {
-        return res.status(400).json({
-          success: false,
-          message: 'No valid fields to update'
-        });
+      // Update user profile (only if there are fields to update)
+      let updated = true;
+      if (Object.keys(updateData).length > 0) {
+        updated = await StudentProfileModel.updateUser(userId, updateData);
+        
+        if (!updated) {
+          return res.status(400).json({
+            success: false,
+            message: 'No valid fields to update'
+          });
+        }
+      }
+
+      // Handle skills update if provided
+      if (skillsToUpdate && Array.isArray(skillsToUpdate)) {
+        await StudentProfileModel.updateUserSkills(userId, skillsToUpdate);
       }
 
       // Get updated user data
