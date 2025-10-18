@@ -1,4 +1,4 @@
-const { promisePool } = require('../config/database');
+const { db } = require('../config/database');
 const bcrypt = require('bcryptjs');
 
 class UserModel {
@@ -6,81 +6,124 @@ class UserModel {
   static async create(userData) {
     const { name, email, password, role, phone = null } = userData;
     
-    try {
-      // Hash password
-      const hashedPassword = await bcrypt.hash(password, 10);
-      
-      // Insert user into database
-      const [result] = await promisePool.execute(
-        `INSERT INTO users (name, email, password, role, phone) 
-         VALUES (?, ?, ?, ?, ?)`,
-        [name, email, hashedPassword, role, phone]
-      );
-      
-      // If user is a student, create student profile
-      if (role === 'student') {
-        await promisePool.execute(
-          `INSERT INTO student_profiles (user_id) VALUES (?)`,
-          [result.insertId]
+    return new Promise(async (resolve, reject) => {
+      try {
+        // Hash password
+        const hashedPassword = await bcrypt.hash(password, 10);
+        
+        // Insert user into database
+        db.run(
+          `INSERT INTO users (name, email, password, role, phone) 
+           VALUES (?, ?, ?, ?, ?)`,
+          [name, email, hashedPassword, role, phone],
+          async function(err) {
+            if (err) {
+              reject(err);
+              return;
+            }
+            
+            const userId = this.lastID;
+            
+            // If user is a student, create student profile
+            if (role === 'student') {
+              db.run(
+                `INSERT INTO student_profiles (user_id) VALUES (?)`,
+                [userId],
+                (err) => {
+                  if (err) {
+                    reject(err);
+                    return;
+                  }
+                  
+                  resolve({
+                    id: userId,
+                    name,
+                    email,
+                    role,
+                    phone
+                  });
+                }
+              );
+            } else {
+              resolve({
+                id: userId,
+                name,
+                email,
+                role,
+                phone
+              });
+            }
+          }
         );
+      } catch (error) {
+        reject(error);
       }
-      
-      return {
-        id: result.insertId,
-        name,
-        email,
-        role,
-        phone
-      };
-    } catch (error) {
-      throw error;
-    }
+    });
   }
   
   // Find user by email
   static async findByEmail(email) {
-    try {
-      const [rows] = await promisePool.execute(
+    return new Promise((resolve, reject) => {
+      db.get(
         `SELECT id, name, email, password, role, phone, 
                 rating, total_reviews, is_verified, created_at 
          FROM users 
          WHERE email = ?`,
-        [email]
+        [email],
+        (err, user) => {
+          if (err) {
+            reject(err);
+            return;
+          }
+          resolve(user || null);
+        }
       );
-      
-      return rows[0] || null;
-    } catch (error) {
-      throw error;
-    }
+    });
   }
   
   // Find user by ID
   static async findById(id) {
-    try {
-      const [rows] = await promisePool.execute(
+    return new Promise((resolve, reject) => {
+      db.get(
         `SELECT id, name, email, role, phone, bio, profile_picture,
                 location, rating, total_reviews, is_verified, created_at 
          FROM users 
          WHERE id = ?`,
-        [id]
-      );
-      
-      // If user is a student, also get student profile
-      if (rows[0] && rows[0].role === 'student') {
-        const [studentProfile] = await promisePool.execute(
-          `SELECT * FROM student_profiles WHERE user_id = ?`,
-          [id]
-        );
-        
-        if (studentProfile[0]) {
-          rows[0].studentProfile = studentProfile[0];
+        [id],
+        async (err, user) => {
+          if (err) {
+            reject(err);
+            return;
+          }
+          
+          if (!user) {
+            resolve(null);
+            return;
+          }
+          
+          // If user is a student, also get student profile
+          if (user.role === 'student') {
+            db.get(
+              `SELECT * FROM student_profiles WHERE user_id = ?`,
+              [id],
+              (err, studentProfile) => {
+                if (err) {
+                  reject(err);
+                  return;
+                }
+                
+                if (studentProfile) {
+                  user.studentProfile = studentProfile;
+                }
+                resolve(user);
+              }
+            );
+          } else {
+            resolve(user);
+          }
         }
-      }
-      
-      return rows[0] || null;
-    } catch (error) {
-      throw error;
-    }
+      );
+    });
   }
   
   // Update user
@@ -116,16 +159,19 @@ class UserModel {
   
   // Check if email exists
   static async emailExists(email) {
-    try {
-      const [rows] = await promisePool.execute(
+    return new Promise((resolve, reject) => {
+      db.get(
         `SELECT COUNT(*) as count FROM users WHERE email = ?`,
-        [email]
+        [email],
+        (err, row) => {
+          if (err) {
+            reject(err);
+            return;
+          }
+          resolve(row.count > 0);
+        }
       );
-      
-      return rows[0].count > 0;
-    } catch (error) {
-      throw error;
-    }
+    });
   }
   
   // Verify password
