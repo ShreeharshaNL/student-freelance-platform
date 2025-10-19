@@ -1,27 +1,18 @@
-import React, { createContext, useState, useContext, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { 
-  authAPI, 
-  tokenUtils, 
-  isAuthenticated, 
-  getCurrentUser,
-  setupTokenRefresh,
-  clearTokenRefresh
-} from '../utils/auth';
+import React, { createContext, useState, useContext, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { authAPI, tokenUtils, setupTokenRefresh, clearTokenRefresh } from "../utils/auth";
 
-// Create the Auth Context
+// Create Auth Context
 const AuthContext = createContext();
 
 // Custom hook to use Auth Context
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
+  if (!context) throw new Error("useAuth must be used within AuthProvider");
   return context;
 };
 
-// Auth Provider Component
+// AuthProvider Component
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -31,42 +22,28 @@ export const AuthProvider = ({ children }) => {
   // Initialize auth state on mount
   useEffect(() => {
     initializeAuth();
-    
-    // Cleanup on unmount
-    return () => {
-      clearTokenRefresh();
-    };
+    return () => clearTokenRefresh();
   }, []);
 
-  // Initialize authentication state
+  // Initialize authentication
   const initializeAuth = async () => {
     try {
       setLoading(true);
-      
-      if (isAuthenticated()) {
-        const userData = getCurrentUser();
-        
-        // Verify token with backend
-        const response = await authAPI.verifyToken();
-        
+      const token = tokenUtils.getToken();
+      if (token) {
+        const response = await authAPI.verifyToken(token);
         if (response.success && response.data.user) {
-          const fullUserData = response.data.user;
-          setUser(fullUserData);
-          
-          // Set up token refresh
-          setupTokenRefresh(() => {
-            handleTokenExpired();
-          });
+          setUser(response.data.user);
+          setupTokenRefresh(handleTokenExpired);
         } else {
-          // Token is invalid
           tokenUtils.removeToken();
           setUser(null);
         }
       } else {
         setUser(null);
       }
-    } catch (error) {
-      console.error('Auth initialization error:', error);
+    } catch (err) {
+      console.error("Auth init error:", err);
       tokenUtils.removeToken();
       setUser(null);
     } finally {
@@ -78,47 +55,33 @@ export const AuthProvider = ({ children }) => {
   const handleTokenExpired = () => {
     tokenUtils.removeToken();
     setUser(null);
-    navigate('/login');
+    navigate("/login");
   };
 
   // Login function
   const login = async (email, password) => {
     try {
-      setError(null);
       setLoading(true);
-
+      setError(null);
       const response = await authAPI.login({ email, password });
-      
-      if (response.success && response.data.token) {
-        // Store token
-        tokenUtils.setToken(response.data.token);
-        
-        // Set user data
-        const userData = response.data.user;
-        setUser(userData);
-        
-        // Set up token refresh
-        setupTokenRefresh(() => {
-          handleTokenExpired();
-        });
-        
-        // Navigate based on role
-        if (userData.role === 'student') {
-          navigate('/student/dashboard');
-        } else if (userData.role === 'client') {
-          navigate('/client/dashboard');
-        } else {
-          navigate('/');
-        }
-        
-        return { success: true };
-      } else {
-        throw new Error(response.message || 'Login failed');
-      }
-    } catch (error) {
-      const errorMessage = error.message || 'Invalid email or password';
-      setError(errorMessage);
-      return { success: false, error: errorMessage };
+
+      if (!response.success) throw new Error(response.error || "Login failed");
+
+      const userData = response.data.user;
+      tokenUtils.setToken(response.data.token);
+      setUser(userData);
+      setupTokenRefresh(handleTokenExpired);
+
+      // Navigate based on role
+      if (userData.role === "student") navigate("/student/dashboard");
+      else if (userData.role === "client") navigate("/client/dashboard");
+      else navigate("/");
+
+      return { success: true };
+    } catch (err) {
+      const message = err.message || "Invalid email or password";
+      setError(message);
+      return { success: false, error: message };
     } finally {
       setLoading(false);
     }
@@ -127,63 +90,45 @@ export const AuthProvider = ({ children }) => {
   // Register function
   const register = async (userData) => {
     try {
-      setError(null);
       setLoading(true);
-
+      setError(null);
       const response = await authAPI.register(userData);
-      
-      if (response.success && response.data.token) {
-        // Store token
-        tokenUtils.setToken(response.data.token);
-        
-        // Set user data
-        const registeredUserData = response.data.user;
-        setUser(registeredUserData);
-        
-        // Set up token refresh
-        setupTokenRefresh(() => {
-          handleTokenExpired();
-        });
-        
-        // Navigate based on role
-        if (registeredUserData.role === 'student') {
-          navigate('/student/dashboard');
-        } else if (registeredUserData.role === 'client') {
-          navigate('/client/dashboard');
-        } else {
-          navigate('/');
-        }
-        
-        return { success: true };
-      } else {
-        throw new Error(response.message || 'Registration failed');
-      }
-    } catch (error) {
-      const errorMessage = error.message || 'Registration failed. Please try again.';
-      setError(errorMessage);
-      return { success: false, error: errorMessage };
+
+      if (!response.success) throw new Error(response.error || "Registration failed");
+
+      const registeredUser = response.data.user;
+      tokenUtils.setToken(response.data.token);
+      setUser(registeredUser);
+      setupTokenRefresh(handleTokenExpired);
+
+      // Navigate based on role
+      if (registeredUser.role === "student") navigate("/student/dashboard");
+      else if (registeredUser.role === "client") navigate("/client/dashboard");
+      else navigate("/");
+
+      return { success: true };
+    } catch (err) {
+      const message = err.message || "Registration failed. Please try again.";
+      setError(message);
+      return { success: false, error: message };
     } finally {
       setLoading(false);
     }
   };
 
-  // Logout function
+  // Logout
   const logout = () => {
-    authAPI.logout();
+    tokenUtils.removeToken();
     clearTokenRefresh();
     setUser(null);
-    navigate('/');
+    navigate("/");
   };
 
-  // Update user data
-  const updateUser = (userData) => {
-    setUser(prevUser => ({
-      ...prevUser,
-      ...userData
-    }));
+  // Update user
+  const updateUser = (updatedData) => {
+    setUser((prev) => ({ ...prev, ...updatedData }));
   };
 
-  // Context value
   const value = {
     user,
     loading,
@@ -193,12 +138,8 @@ export const AuthProvider = ({ children }) => {
     register,
     logout,
     updateUser,
-    setError
+    setError,
   };
 
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

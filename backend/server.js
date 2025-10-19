@@ -1,30 +1,38 @@
-const express = require('express');
-const dotenv = require('dotenv');
-const cors = require('cors');
-const connectDB = require('./database/db'); // We'll create this next
+const express = require("express");
+const dotenv = require("dotenv");
+const connectDB = require("./config/db");
+const cors = require("cors");
+const morgan = require("morgan");
 
-// Load environment variables
+// Load env variables
 dotenv.config();
 
-// Connect to database
+// Connect to MongoDB
 connectDB();
 
 const app = express();
 
 // Middleware
-app.use(cors()); // Enable Cross-Origin Resource Sharing
-app.use(express.json()); // Allow app to accept JSON
+app.use(express.json());
+app.use(cors());
+app.use(morgan("dev"));
 
-// A simple test route
-app.get('/', (req, res) => {
-    res.send('API is running...');
+// Routes
+app.use("/api/auth", require("./routes/authRoutes"));
+app.use("/api/user", require("./routes/userRoutes")); // Protected routes
+
+// Default route
+app.get("/", (req, res) => {
+  res.send("API is running...");
 });
 
-// Use Auth Routes (we will create this soon)
-const authRoutes = require('./routes/auth');
-app.use('/api/auth', authRoutes);
+// Error handling for unknown routes
+app.use((req, res, next) => {
+  res.status(404).json({ success: false, error: "Route not found" });
+});
 
-
+// Start server
 const PORT = process.env.PORT || 5000;
-
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
