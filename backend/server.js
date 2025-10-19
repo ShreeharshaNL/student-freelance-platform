@@ -1,37 +1,30 @@
-const express = require("express");
-const cors = require("cors");
-const dotenv = require("dotenv");
-const { testConnection } = require('./config/database');
+const express = require('express');
+const dotenv = require('dotenv');
+const cors = require('cors');
+const connectDB = require('./database/db'); // We'll create this next
 
-// Import routes
-const authRoutes = require('./routes/auth');
-
+// Load environment variables
 dotenv.config();
+
+// Connect to database
+connectDB();
+
 const app = express();
 
 // Middleware
-app.use(cors());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(cors()); // Enable Cross-Origin Resource Sharing
+app.use(express.json()); // Allow app to accept JSON
 
-// Routes
-app.get("/", (req, res) => res.send("Backend running 🚀"));
+// A simple test route
+app.get('/', (req, res) => {
+    res.send('API is running...');
+});
+
+// Use Auth Routes (we will create this soon)
+const authRoutes = require('./routes/auth');
 app.use('/api/auth', authRoutes);
 
-// Test database connection and start server
-const startServer = async () => {
-  const dbConnected = await testConnection();
-  
-  if (!dbConnected) {
-    console.error('Failed to connect to database. Server not started.');
-    process.exit(1);
-  }
-  
-  const PORT = process.env.PORT || 5000;
-  app.listen(PORT, () => {
-    console.log(`🚀 Server running on port ${PORT}`);
-    console.log(`📍 API endpoints available at http://localhost:${PORT}/api`);
-  });
-};
 
-startServer();
+const PORT = process.env.PORT || 5000;
+
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
