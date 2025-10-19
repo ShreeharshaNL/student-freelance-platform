@@ -2,6 +2,12 @@
 @tailwind components;
 @tailwind utilities;
 
+/* src/index.css */
+
+@import url('https://fonts.googleapis.com/css2?family=Cascadia+Code:ital,wght@0,200..700;1,200..700&display=swap');
+
+
+
 /* Base styles for better typography and accessibility */
 :root {
   font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;

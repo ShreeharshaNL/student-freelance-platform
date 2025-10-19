@@ -14,15 +14,15 @@ export default function Login() {
   const location = useLocation();
   
   // Redirect if already authenticated
-  useEffect(() => {
-    if (isAuthenticated && user) {
-      if (user.role === 'student') {
-        navigate('/student/dashboard');
-      } else if (user.role === 'client') {
-        navigate('/client/dashboard');
-      }
-    }
-  }, [isAuthenticated, user, navigate]);
+  // useEffect(() => {
+  //   if (isAuthenticated && user) {
+  //     if (user.role === 'student') {
+  //       navigate('/student/dashboard');
+  //     } else if (user.role === 'client') {
+  //       navigate('/client/dashboard');
+  //     }
+  //   }
+  // }, [isAuthenticated, user, navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

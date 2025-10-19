@@ -1,37 +1,38 @@
 const express = require("express");
-const cors = require("cors");
 const dotenv = require("dotenv");
-const { testConnection } = require('./config/database');
+const connectDB = require("./config/db");
+const cors = require("cors");
+const morgan = require("morgan");
 
-// Import routes
-const authRoutes = require('./routes/auth');
-
+// Load env variables
 dotenv.config();
+
+// Connect to MongoDB
+connectDB();
+
 const app = express();
 
 // Middleware
-app.use(cors());
 app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(cors());
+app.use(morgan("dev"));
 
 // Routes
-app.get("/", (req, res) => res.send("Backend running 🚀"));
-app.use('/api/auth', authRoutes);
+app.use("/api/auth", require("./routes/authRoutes"));
+app.use("/api/user", require("./routes/userRoutes")); // Protected routes
 
-// Test database connection and start server
-const startServer = async () => {
-  const dbConnected = await testConnection();
-  
-  if (!dbConnected) {
-    console.error('Failed to connect to database. Server not started.');
-    process.exit(1);
-  }
-  
-  const PORT = process.env.PORT || 5000;
-  app.listen(PORT, () => {
-    console.log(`🚀 Server running on port ${PORT}`);
-    console.log(`📍 API endpoints available at http://localhost:${PORT}/api`);
-  });
-};
+// Default route
+app.get("/", (req, res) => {
+  res.send("API is running...");
+});
 
-startServer();
+// Error handling for unknown routes
+app.use((req, res, next) => {
+  res.status(404).json({ success: false, error: "Route not found" });
+});
+
+// Start server
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
