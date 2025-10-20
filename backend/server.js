@@ -4,6 +4,9 @@ const dotenv = require("dotenv");
 const connectDB = require("./config/db");
 const cors = require("cors");
 const morgan = require("morgan");
+const http = require("http");
+const { Server } = require("socket.io");
+const jwt = require("jsonwebtoken");
 
 // Load env variables
 dotenv.config();
@@ -19,10 +22,10 @@ app.use(cors());
 app.use(morgan("dev"));
 
 // Routes
-// Routes
 app.use("/api/auth", require("./routes/authRoutes"));
 app.use("/api/user", require("./routes/userRoutes"));
-app.use("/api/profile", require("./routes/profileRoutes")); // ADD THIS LINE
+app.use("/api/profile", require("./routes/profileRoutes"));
+app.use("/api/messages", require("./routes/messagesRoutes"));
 
 // Default route
 app.get("/", (req, res) => {
@@ -36,6 +39,45 @@ app.use((req, res, next) => {
 
 // Start server
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+
+// Create HTTP server and Socket.IO
+const server = http.createServer(app);
+const io = new Server(server, {
+  cors: {
+    origin: process.env.CLIENT_ORIGIN || "http://localhost:5173",
+    methods: ["GET", "POST"],
+    credentials: true,
+  },
+});
+
+// JWT auth for sockets
+io.use((socket, next) => {
+  try {
+    const token = socket.handshake.auth?.token || socket.handshake.query?.token;
+    if (!token) return next(new Error("No auth token"));
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    socket.user = decoded;
+    next();
+  } catch (err) {
+    next(new Error("Invalid auth token"));
+  }
+});
+
+// Socket handlers
+io.on("connection", (socket) => {
+  // Join/leave conversation rooms
+  socket.on("join_conversation", (conversationId) => {
+    if (conversationId) socket.join(conversationId.toString());
+  });
+  socket.on("leave_conversation", (conversationId) => {
+    if (conversationId) socket.leave(conversationId.toString());
+  });
+});
+
+// Make io available in routes/controllers
+app.set("io", io);
+
+// Start server
+server.listen(PORT, () => {
+  console.log(`Server running with Socket.IO on port ${PORT}`);
 });
