@@ -1,10 +1,13 @@
+//DashboardLayout.jsx
 import React, { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 
 const DashboardLayout = ({ children, userType = "student" }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
+  const { logout } = useAuth();
 
   const studentNavItems = [
     { name: "Dashboard", href: "/student/dashboard", icon: "📊" },
@@ -34,46 +37,7 @@ const DashboardLayout = ({ children, userType = "student" }) => {
 
   // Logout handler
   const handleLogout = async () => {
-    try {
-      // Call backend logout endpoint
-      const token = localStorage.getItem('token'); // Based on your auth structure
-      
-      const response = await fetch('/api/auth/logout', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      const result = await response.json();
-      
-      // Clear authentication data from localStorage
-      localStorage.removeItem('token'); // Your auth uses 'token' not 'authToken'
-      localStorage.removeItem('user');
-      localStorage.removeItem('userType');
-      
-      // Clear authentication data from sessionStorage
-      sessionStorage.removeItem('token');
-      sessionStorage.removeItem('user');
-      
-      if (result.success) {
-        console.log('Logged out successfully');
-      }
-      
-      // Redirect to login page
-      navigate('/', { replace: true });
-      
-    } catch (error) {
-      console.error('Logout failed:', error);
-      
-      // Even if the API call fails, clear local data and redirect
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      localStorage.removeItem('userType');
-      sessionStorage.clear();
-      navigate('/', { replace: true });
-    }
+    logout();
   };
 
   // Confirmation logout handler (optional)
@@ -95,9 +59,8 @@ const DashboardLayout = ({ children, userType = "student" }) => {
 
       {/* Sidebar */}
       <div
-        className={`fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-lg transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0 lg:flex lg:flex-col ${
-          sidebarOpen ? "translate-x-0" : "-translate-x-full"
-        }`}
+        className={`fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-lg transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0 lg:flex lg:flex-col ${sidebarOpen ? "translate-x-0" : "-translate-x-full"
+          }`}
       >
         <div className="flex items-center justify-center h-16 px-4 border-b">
           <Link to="/" className="text-xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
@@ -111,11 +74,10 @@ const DashboardLayout = ({ children, userType = "student" }) => {
               <Link
                 key={item.name}
                 to={item.href}
-                className={`flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors ${
-                  isActiveLink(item.href)
+                className={`flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors ${isActiveLink(item.href)
                     ? "bg-indigo-50 text-indigo-700 border-r-2 border-indigo-600"
                     : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
-                }`}
+                  }`}
               >
                 <span className="mr-3 text-lg">{item.icon}</span>
                 {item.name}
@@ -142,7 +104,7 @@ const DashboardLayout = ({ children, userType = "student" }) => {
               <button
                 className="flex items-center w-full px-4 py-3 text-sm font-medium text-gray-600 rounded-lg hover:bg-red-50 hover:text-red-700 transition-colors"
                 onClick={handleLogout}
-                // Alternative with confirmation: onClick={handleLogoutWithConfirmation}
+              // Alternative with confirmation: onClick={handleLogoutWithConfirmation}
               >
                 <span className="mr-3 text-lg">🚪</span>
                 Sign Out

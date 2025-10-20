@@ -1,5 +1,5 @@
 const jwt = require("jsonwebtoken");
-const User = require("../models/userModel");
+const User = require("../models/User");
 
 // Middleware to verify JWT token
 const protect = async (req, res, next) => {

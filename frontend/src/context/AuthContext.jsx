@@ -1,3 +1,5 @@
+//AuthContext.jsx
+
 import React, { createContext, useState, useContext, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { authAPI, tokenUtils, setupTokenRefresh, clearTokenRefresh } from "../utils/auth";
@@ -25,31 +27,42 @@ export const AuthProvider = ({ children }) => {
     return () => clearTokenRefresh();
   }, []);
 
-  // Initialize authentication
-  const initializeAuth = async () => {
-    try {
-      setLoading(true);
-      const token = tokenUtils.getToken();
-      if (token) {
-        const response = await authAPI.verifyToken(token);
-        if (response.success && response.data.user) {
-          setUser(response.data.user);
-          setupTokenRefresh(handleTokenExpired);
-        } else {
-          tokenUtils.removeToken();
-          setUser(null);
-        }
+// Initialize authentication
+const initializeAuth = async () => {
+  try {
+    setLoading(true);
+    const token = tokenUtils.getToken();
+    
+    if (token && !tokenUtils.isTokenExpired(token)) {
+      // Token exists and is valid, parse user data from token
+      const userData = tokenUtils.parseToken(token);
+      
+      if (userData && userData.id) {
+        setUser({
+          id: userData.id,
+          email: userData.email,
+          role: userData.role,
+          name: userData.name // if your token has this
+        });
+        setupTokenRefresh(handleTokenExpired);
       } else {
+        // Token is invalid, clear it
+        tokenUtils.removeToken();
         setUser(null);
       }
-    } catch (err) {
-      console.error("Auth init error:", err);
+    } else {
+      // No token or expired token
       tokenUtils.removeToken();
       setUser(null);
-    } finally {
-      setLoading(false);
     }
-  };
+  } catch (err) {
+    console.error("Auth init error:", err);
+    tokenUtils.removeToken();
+    setUser(null);
+  } finally {
+    setLoading(false);
+  }
+};
 
   // Handle token expiration
   const handleTokenExpired = () => {
