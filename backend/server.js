@@ -1,3 +1,4 @@
+//server.js
 const express = require("express");
 const dotenv = require("dotenv");
 const connectDB = require("./config/db");
@@ -18,8 +19,10 @@ app.use(cors());
 app.use(morgan("dev"));
 
 // Routes
+// Routes
 app.use("/api/auth", require("./routes/authRoutes"));
-app.use("/api/user", require("./routes/userRoutes")); // Protected routes
+app.use("/api/user", require("./routes/userRoutes"));
+app.use("/api/profile", require("./routes/profileRoutes")); // ADD THIS LINE
 
 // Default route
 app.get("/", (req, res) => {
