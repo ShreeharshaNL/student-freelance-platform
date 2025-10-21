@@ -13,7 +13,7 @@ const {
   deleteEducation,
   addCertification,
   deleteCertification
-} = require("../controllers/ProfileController");
+} = require("../controllers/profileController");
 
 
 // Profile routes
