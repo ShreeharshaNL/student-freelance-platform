@@ -1,110 +1,89 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import DashboardLayout from "../components/DashboardLayout";
+import { useAuth } from "../context/AuthContext.jsx";
+import { messagesAPI } from "../utils/messagesAPI";
+import { io } from "socket.io-client";
+import API from "../utils/api";
 
 const Messages = ({ userType = "student" }) => {
-  const [selectedConversation, setSelectedConversation] = useState(1);
+  const [selectedConversation, setSelectedConversation] = useState(null);
   const [newMessage, setNewMessage] = useState("");
+  const [conversations, setConversations] = useState([]);
+  const [chatMessages, setChatMessages] = useState([]);
+  const socketRef = useRef(null);
+  const { user } = useAuth();
+  const [emailInput, setEmailInput] = useState("");
+  const [creating, setCreating] = useState(false);
 
-  // Mock conversations data
-  const conversations = [
-    {
-      id: 1,
-      name: userType === "student" ? "TechCorp India" : "Shreeharsha N L",
-      avatar: userType === "student" ? "TC" : "SH",
-      lastMessage: "Great! I'll start working on the project today.",
-      time: "2 min ago",
-      unread: 2,
-      online: true,
-      project: "WordPress Blog Setup"
-    },
-    {
-      id: 2,
-      name: userType === "student" ? "Priya Nair - Digital Solutions" : "Rahul Kumar",
-      avatar: userType === "student" ? "SB" : "RK",
-      lastMessage: "Can you share some examples of your previous work?",
-      time: "1 hour ago",
-      unread: 0,
-      online: false,
-      project: "Simple Business Website"
-    },
-    {
-      id: 3,
-      name: userType === "student" ? "Fitness Trainer" : "Sneha Patel",
-      avatar: userType === "student" ? "FT" : "SP",
-      lastMessage: "The designs look amazing! Thanks for the quick delivery.",
-      time: "3 hours ago",
-      unread: 0,
-      online: true,
-      project: "Instagram Post Designs"
-    },
-    {
-      id: 4,
-      name: userType === "student" ? "Food Blogger" : "Amit Singh",
-      avatar: userType === "student" ? "FB" : "AS",
-      lastMessage: "When can we schedule a call to discuss the requirements?",
-      time: "1 day ago",
-      unread: 1,
-      online: false,
-      project: "Blog Content Writing"
-    }
-  ];
-
-  // Mock messages data
-  const messages = {
-    1: [
-      {
-        id: 1,
-        sender: userType === "student" ? "client" : "student",
-        content: "Hi! I saw your application for the WordPress blog project. I'm impressed with your portfolio.",
-        time: "10:30 AM",
-        date: "Today"
-      },
-      {
-        id: 2,
-        sender: userType === "student" ? "student" : "client",
-        content: "Thank you! I'm really excited about this project. I have experience with similar blog setups.",
-        time: "10:35 AM",
-        date: "Today"
-      },
-      {
-        id: 3,
-        sender: userType === "student" ? "client" : "student",
-        content: "That's perfect! Can you give me an estimate of how long this will take?",
-        time: "10:40 AM",
-        date: "Today"
-      },
-      {
-        id: 4,
-        sender: userType === "student" ? "student" : "client",
-        content: "I can complete the basic setup in 3-4 days, including theme customization and SEO optimization.",
-        time: "10:45 AM",
-        date: "Today"
-      },
-      {
-        id: 5,
-        sender: userType === "student" ? "client" : "student",
-        content: "Sounds great! I'd like to hire you for this project. I'll send you the project details and requirements.",
-        time: "11:00 AM",
-        date: "Today"
-      },
-      {
-        id: 6,
-        sender: userType === "student" ? "student" : "client",
-        content: "Great! I'll start working on the project today.",
-        time: "11:02 AM",
-        date: "Today"
+  useEffect(() => {
+    const fetchConversations = async () => {
+      try {
+        const res = await messagesAPI.getConversations();
+        const list = (res.data?.conversations || res.conversations || []);
+        const mapped = list.map((c) => ({
+          _id: c._id,
+          name: "Chat",
+          avatar: "CH",
+          lastMessage: c.lastMessage?.content || "",
+          time: new Date(c.updatedAt).toLocaleTimeString(),
+          unread: 0,
+          online: false,
+          project: "",
+          otherUserId: c.otherUserId,
+        }));
+        setConversations(mapped);
+        if (mapped.length > 0) setSelectedConversation(mapped[0]._id);
+      } catch (e) {
+        console.error("Failed to load conversations", e);
       }
-    ]
-  };
+    };
+    fetchConversations();
+  }, []);
 
-  const selectedChat = conversations.find(conv => conv.id === selectedConversation);
-  const chatMessages = messages[selectedConversation] || [];
+  useEffect(() => {
+    if (socketRef.current) return;
+    const token = localStorage.getItem('authToken');
+    const s = io('http://localhost:5000', { auth: { token } });
+    socketRef.current = s;
+  }, []);
 
-  const handleSendMessage = () => {
-    if (newMessage.trim()) {
-      // Handle sending message
-      console.log("Sending message:", newMessage);
+  useEffect(() => {
+    const s = socketRef.current;
+    if (!s || !selectedConversation) return;
+
+    s.emit('join_conversation', selectedConversation);
+
+    const handleNew = (msg) => {
+      if (msg.conversation?.toString() !== selectedConversation?.toString()) return;
+      setChatMessages((prev) => [...prev, msg]);
+    };
+    s.on('message:new', handleNew);
+
+    (async () => {
+      try {
+        const res = await messagesAPI.getMessages(selectedConversation);
+        const list = res.data?.messages || res.messages || [];
+        setChatMessages(list);
+      } catch (e) {
+        console.error("Failed to load messages", e);
+      }
+    })();
+
+    return () => {
+      s.emit('leave_conversation', selectedConversation);
+      s.off('message:new', handleNew);
+    };
+  }, [selectedConversation]);
+
+  const selectedChat = conversations.find(conv => (conv._id || conv.id) === selectedConversation) || null;
+
+  const handleSendMessage = async () => {
+    if (!newMessage.trim() || !selectedConversation) return;
+    try {
+      await messagesAPI.sendMessage(selectedConversation, newMessage.trim());
       setNewMessage("");
+    } catch (e) {
+      console.error("Send message failed", e);
     }
   };
 
@@ -128,8 +107,8 @@ const Messages = ({ userType = "student" }) => {
             </p>
           </div>
 
-          {/* Search */}
-          <div className="p-4 border-b">
+          {/* Search & Start Chat */}
+          <div className="p-4 border-b space-y-3">
             <div className="relative">
               <input
                 type="text"
@@ -142,16 +121,65 @@ const Messages = ({ userType = "student" }) => {
                 </svg>
               </div>
             </div>
+
+            <div className="flex gap-2">
+              <input
+                type="email"
+                value={emailInput}
+                onChange={(e) => setEmailInput(e.target.value)}
+                placeholder={userType === 'student' ? "Enter client email" : "Enter student email"}
+                className="flex-1 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              />
+              <button
+                onClick={async () => {
+                  if (!emailInput.trim()) return;
+                  setCreating(true);
+                  try {
+                    const res = await API.get('/user/by-email', { params: { email: emailInput.trim() } });
+                    const otherUserId = res.data?.data?.user?._id || res.data?.user?._id;
+                    if (!otherUserId) throw new Error('User not found');
+
+                    const convoRes = await messagesAPI.createOrGetConversation(otherUserId);
+                    const convoId = convoRes.data?.conversation?._id || convoRes.conversation?._id;
+
+                    const convosRes = await messagesAPI.getConversations();
+                    const list = (convosRes.data?.conversations || convosRes.conversations || []);
+                    const mapped = list.map((c) => ({
+                      _id: c._id,
+                      name: "Chat",
+                      avatar: "CH",
+                      lastMessage: c.lastMessage?.content || "",
+                      time: new Date(c.updatedAt).toLocaleTimeString(),
+                      unread: 0,
+                      online: false,
+                      project: "",
+                      otherUserId: c.otherUserId,
+                    }));
+                    setConversations(mapped);
+                    if (convoId) setSelectedConversation(convoId);
+                    setEmailInput("");
+                  } catch (e) {
+                    console.error('Failed to start conversation', e);
+                  } finally {
+                    setCreating(false);
+                  }
+                }}
+                disabled={!emailInput.trim() || creating}
+                className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50"
+              >
+                {creating ? 'Starting...' : 'Start Chat'}
+              </button>
+            </div>
           </div>
 
           {/* Conversations List */}
           <div className="flex-1 overflow-y-auto">
             {conversations.map((conversation) => (
               <div
-                key={conversation.id}
-                onClick={() => setSelectedConversation(conversation.id)}
+                key={conversation._id}
+                onClick={() => setSelectedConversation(conversation._id)}
                 className={`p-4 border-b cursor-pointer hover:bg-gray-50 transition-colors ${
-                  selectedConversation === conversation.id ? "bg-indigo-50 border-indigo-200" : ""
+                  selectedConversation === conversation._id ? "bg-indigo-50 border-indigo-200" : ""
                 }`}
               >
                 <div className="flex items-start gap-3">
@@ -238,18 +266,18 @@ const Messages = ({ userType = "student" }) => {
                 {chatMessages.map((message) => (
                   <div
                     key={message.id}
-                    className={`flex ${message.sender === "student" ? "justify-end" : "justify-start"}`}
+                    className={`flex ${(message.sender?.toString?.() === user?.id) ? "justify-end" : "justify-start"}`}
                   >
                     <div className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
-                      message.sender === "student"
+                      message.sender?.toString?.() === user?.id
                         ? "bg-indigo-600 text-white"
                         : "bg-gray-100 text-gray-900"
                     }`}>
                       <p className="text-sm">{message.content}</p>
                       <p className={`text-xs mt-1 ${
-                        message.sender === "student" ? "text-indigo-200" : "text-gray-500"
+                        message.sender?.toString?.() === user?.id ? "text-indigo-200" : "text-gray-500"
                       }`}>
-                        {message.time}
+                        {new Date(message.createdAt).toLocaleTimeString()}
                       </p>
                     </div>
                   </div>

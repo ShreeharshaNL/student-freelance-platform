@@ -1,3 +1,4 @@
+//Login.jsx
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
@@ -8,30 +9,30 @@ export default function Login() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  
-  const { login, isAuthenticated, user } = useAuth();
+
+ const { login, isAuthenticated, user, loading } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  
+
   // Redirect if already authenticated
   useEffect(() => {
-    if (isAuthenticated && user) {
+    if (!loading && isAuthenticated && user) {
       if (user.role === 'student') {
         navigate('/student/dashboard');
       } else if (user.role === 'client') {
         navigate('/client/dashboard');
       }
     }
-  }, [isAuthenticated, user, navigate]);
+  }, [isAuthenticated, user, navigate, loading]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
     setIsLoading(true);
-    
+
     try {
       const result = await login(email, password);
-      
+
       if (!result.success) {
         setError(result.error || "Login failed. Please try again.");
       }
@@ -50,21 +51,21 @@ export default function Login() {
           <h2 className="text-3xl font-bold text-gray-800">Welcome Back</h2>
           <p className="text-gray-600 mt-2">Login to your account</p>
         </div>
-        
+
         {/* Error Message */}
         {error && (
           <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
             <p className="text-red-600 text-sm">{error}</p>
           </div>
         )}
-        
+
         {/* Success message from registration */}
         {location.state?.message && (
           <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
             <p className="text-green-600 text-sm">{location.state.message}</p>
           </div>
         )}
-        
+
         <form onSubmit={handleSubmit}>
           <div className="mb-4">
             <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
@@ -81,7 +82,7 @@ export default function Login() {
               disabled={isLoading}
             />
           </div>
-          
+
           <div className="mb-6">
             <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
               Password
@@ -116,7 +117,7 @@ export default function Login() {
               </button>
             </div>
           </div>
-          
+
           <div className="flex items-center justify-between mb-6">
             <label className="flex items-center">
               <input type="checkbox" className="h-4 w-4 text-indigo-600 border-gray-300 rounded" />
@@ -126,7 +127,7 @@ export default function Login() {
               Forgot password?
             </Link>
           </div>
-          
+
           <button
             type="submit"
             disabled={isLoading}
@@ -145,7 +146,7 @@ export default function Login() {
             )}
           </button>
         </form>
-        
+
         <div className="mt-6 text-center">
           <p className="text-gray-600">
             Don't have an account?{" "}
