@@ -26,7 +26,6 @@ app.use("/api/auth", require("./routes/authRoutes"));
 app.use("/api/user", require("./routes/userRoutes"));
 app.use("/api/profile", require("./routes/profileRoutes"));
 app.use("/api/messages", require("./routes/messagesRoutes"));
-app.use('/api/projects', require('./routes/projectRoutes'));
 
 // Default route
 app.get("/", (req, res) => {
