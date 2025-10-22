@@ -6,6 +6,10 @@ const projectSchema = new mongoose.Schema({
         required: true,
         ref: 'User',
     },
+    applicationsCount: {
+        type: Number,
+        default: 0
+    },
     title: {
         type: String,
         required: true,
@@ -14,26 +18,96 @@ const projectSchema = new mongoose.Schema({
         type: String,
         required: true,
     },
-    // highlight-start
     category: {
         type: String,
         required: true,
+        enum: [
+            'web-development',
+            'graphic-design',
+            'content-writing',
+            'data-entry',
+            'digital-marketing',
+            'mobile-app',
+            'video-editing',
+            'translation'
+        ]
     },
     status: {
         type: String,
         required: true,
-        enum: ['open', 'in-progress', 'completed'], // The status can only be one of these
+        enum: ['open', 'in-progress', 'completed'],
         default: 'open',
     },
-    // highlight-end
     budget: {
         type: Number,
         required: true,
+    },
+    budgetType: {
+        type: String,
+        required: true,
+        enum: ['fixed', 'hourly'],
+        default: 'fixed'
+    },
+    deadline: {
+        type: Date,
+        required: true
     },
     skillsRequired: {
         type: [String],
         required: true,
     },
+    projectType: {
+        type: String,
+        required: true,
+        enum: ['short-term', 'medium-term', 'long-term'],
+        default: 'short-term'
+    },
+    experienceLevel: {
+        type: String,
+        required: true,
+        enum: ['beginner', 'intermediate', 'expert'],
+        default: 'beginner'
+    },
+    isFeatured: {
+        type: Boolean,
+        default: false
+    },
+    isUrgent: {
+        type: Boolean,
+        default: false
+    },
+    applications: [{
+        student: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'User',
+            required: true
+        },
+        status: {
+            type: String,
+            enum: ['pending', 'accepted', 'rejected'],
+            default: 'pending'
+        },
+        proposedBudget: {
+            type: Number,
+            required: true
+        },
+        timeline: {
+            type: String,
+            required: true
+        },
+        coverLetter: {
+            type: String,
+            required: true
+        },
+        questions: {
+            type: String
+        },
+        attachments: [{
+            fileName: String,
+            fileUrl: String
+        }],
+        completionDate: Date
+    }]
 }, {
     timestamps: true,
 });

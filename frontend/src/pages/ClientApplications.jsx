@@ -1,119 +1,160 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../components/DashboardLayout";
+import { applicationsAPI } from "../utils/applicationsAPI";
 
 const ClientApplications = () => {
   const [selectedProject, setSelectedProject] = useState("all");
   const [selectedApplication, setSelectedApplication] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [projects, setProjects] = useState([]);
+  const [applications, setApplications] = useState([]);
+  const navigate = useNavigate();
 
-  // Mock applications data
-  const applications = [
-    {
-      id: 1,
-      projectId: 1,
-      projectTitle: "WordPress Blog Setup",
-      student: {
-        name: "Shreeharsha N L",
-        avatar: "SH",
-        rating: 4.6,
-        completedProjects: 12,
-        skills: ["WordPress", "SEO", "HTML/CSS"],
-        location: "Mysore, Karnataka",
-        responseTime: "2 hours"
-      },
-      appliedDate: "2 hours ago",
-      proposedBudget: "₹3,500",
-      originalBudget: "₹3,800",
-      timeline: "1 week",
-      coverLetter: "I have extensive experience with WordPress development and have completed similar blog setups for local businesses. I'm confident I can deliver exactly what you need within the timeline. My previous clients have been very satisfied with my work quality and communication.",
-      questions: "Do you have any specific design preferences or color schemes in mind for the blog?",
-      portfolio: [
-        { title: "Food Blog Design", image: "🍕", description: "WordPress blog for restaurant" },
-        { title: "SEO Optimization", image: "📈", description: "Improved site ranking by 40%" }
-      ],
-      status: "pending"
-    },
-    {
-      id: 2,
-      projectId: 1,
-      projectTitle: "WordPress Blog Setup",
-      student: {
-        name: "Rahul Kumar",
-        avatar: "RK",
-        rating: 4.3,
-        completedProjects: 8,
-        skills: ["WordPress", "Web Development", "PHP"],
-        location: "Delhi, India",
-        responseTime: "4 hours"
-      },
-      appliedDate: "1 day ago",
-      proposedBudget: "₹3,800",
-      originalBudget: "₹3,800",
-      timeline: "2 weeks",
-      coverLetter: "I'm a computer science student specializing in web development. I have worked on multiple WordPress projects and understand the importance of SEO optimization. I can provide a clean, professional blog that meets all your requirements.",
-      questions: "Would you need any custom plugins or integrations with third-party services?",
-      portfolio: [
-        { title: "Business Website", image: "💼", description: "Corporate site with custom theme" },
-        { title: "E-commerce Store", image: "🛍️", description: "WooCommerce implementation" }
-      ],
-      status: "pending"
-    },
-    {
-      id: 3,
-      projectId: 2,
-      projectTitle: "Social Media Graphics",
-      student: {
-        name: "Sneha Patel",
-        avatar: "SP",
-        rating: 4.8,
-        completedProjects: 15,
-        skills: ["Graphic Design", "Social Media", "Canva"],
-        location: "Bangalore, Karnataka",
-        responseTime: "1 hour"
-      },
-      appliedDate: "3 hours ago",
-      proposedBudget: "₹1,600",
-      originalBudget: "₹1,800",
-      timeline: "5 days",
-      coverLetter: "I specialize in social media graphics and have created content for restaurants and food businesses. I understand the importance of appetizing visuals that drive engagement. I can create attractive posts that will help increase your social media presence.",
-      questions: "Do you have brand guidelines or preferred fonts that I should follow?",
-      portfolio: [
-        { title: "Restaurant Posts", image: "🍽️", description: "Instagram content for food brand" },
-        { title: "Story Templates", image: "📱", description: "Engaging story designs" }
-      ],
-      status: "pending"
-    },
-    {
-      id: 4,
-      projectId: 3,
-      projectTitle: "Data Entry Work",
-      student: {
-        name: "Amit Singh",
-        avatar: "AS",
-        rating: 4.4,
-        completedProjects: 6,
-        skills: ["Data Entry", "Excel", "Attention to Detail"],
-        location: "Pune, Maharashtra",
-        responseTime: "6 hours"
-      },
-      appliedDate: "2 days ago",
-      proposedBudget: "₹1,500",
-      originalBudget: "₹1,500",
-      timeline: "3 days",
-      coverLetter: "I have experience in data entry work and can ensure 100% accuracy. I understand the importance of meeting deadlines and maintaining data quality. I have worked with similar projects before and received positive feedback.",
-      questions: "What format should the final Excel file be in?",
-      portfolio: [
-        { title: "Product Catalog", image: "📊", description: "500+ product entries" },
-        { title: "Customer Database", image: "👥", description: "Clean data organization" }
-      ],
-      status: "shortlisted"
+  useEffect(() => {
+        const fetchProjects = async () => {
+      try {
+        setLoading(true);
+        console.log('Fetching client projects with applications...');
+        const response = await applicationsAPI.getMyProjects();
+        console.log('Raw response:', response);
+        console.log('Response data:', response.data);
+        if (!response.data.success) {
+          throw new Error(response.data.error || 'Failed to fetch projects');
+        }
+        console.log('Projects data:', response.data.data);
+        const projectsData = response.data.data;        // Flatten applications from all projects
+        const allApplications = [];
+        console.log('Starting to flatten applications...');
+        projectsData.forEach(project => {
+          console.log('Project details:', {
+            id: project._id,
+            title: project.title,
+            applicationsCount: project.applicationsCount,
+            hasApplicationsArray: Array.isArray(project.applications),
+            applicationsLength: project.applications ? project.applications.length : 0,
+            applications: project.applications
+          });
+          if (!Array.isArray(project.applications)) {
+            console.warn(`Project ${project._id} has no applications array`);
+            return;
+          }
+          
+          project.applications.forEach(app => {
+            console.log('Processing application:', app);
+            // Skip if missing required fields
+            if (!app || !app.student) {
+              console.warn('Invalid application data:', app);
+              return;
+            }
+
+            allApplications.push({
+              id: app._id,
+              projectId: project._id,
+              projectTitle: project.title,
+              student: {
+                _id: app.student._id, // Add student ID for messaging
+                name: app.student.name,
+                avatar: app.student.name?.split(" ").map(n => n[0]).join("") || "U",
+                rating: app.student.rating || 0,
+                completedProjects: app.student.completedProjects || 0,
+                skills: app.student.skills || [],
+                location: app.student.location || "Not specified",
+                responseTime: "2 hours" // Placeholder for now
+              },
+              appliedDate: new Date(app.createdAt).toLocaleDateString(),
+              proposedBudget: `₹${app.proposedBudget}`,
+              originalBudget: `₹${project.budget}`,
+              timeline: app.timeline || "Not specified",
+              coverLetter: app.coverLetter || "",
+              questions: app.questions || "",
+              portfolio: app.student.portfolio?.map(item => ({
+                title: item.title || "Untitled",
+                image: "📄", // Placeholder for now
+                description: item.description || ""
+              })) || [],
+              status: app.status || "pending"
+            });
+          });
+        });
+
+        setProjects(projectsData);
+        setApplications(allApplications);
+      } catch (err) {
+        setError(err.response?.data?.error || "Failed to load projects");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProjects();
+  }, []);
+
+  const handleStatusUpdate = async (applicationId, status) => {
+    try {
+      if (!applicationId) {
+        throw new Error("Application ID is required");
+      }
+
+      if (!['accepted', 'rejected'].includes(status)) {
+        throw new Error("Invalid status: must be 'accepted' or 'rejected'");
+      }
+
+      // Show loading state
+      setLoading(true);
+      setError(null);
+
+      const response = await applicationsAPI.updateApplicationStatus(applicationId, status);
+      
+      if (!response.data.success) {
+        throw new Error(response.data.error || "Failed to update application status");
+      }
+      
+      // Update local state
+      setApplications(prevApplications => 
+        prevApplications.map(app => 
+          app.id === applicationId ? { ...app, status } : app
+        )
+      );
+
+      // Close modal if open
+      if (selectedApplication?.id === applicationId) {
+        setSelectedApplication(null);
+      }
+    } catch (err) {
+      console.error("Error updating application status:", err);
+      setError(err.response?.data?.error || err.message || "Failed to update application status");
+    } finally {
+      setLoading(false);
     }
-  ];
+  };
 
-  const projects = [
+  if (loading) return (
+    <DashboardLayout userType="client">
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+      </div>
+    </DashboardLayout>
+  );
+
+  if (error) return (
+    <DashboardLayout userType="client">
+      <div className="p-4 bg-red-50 text-red-800 rounded-lg">
+        {error}
+      </div>
+    </DashboardLayout>
+  );
+
+  // Project filter options
+
+  const projectOptions = [
     { id: "all", title: "All Projects", count: applications.length },
-    { id: 1, title: "WordPress Blog Setup", count: applications.filter(app => app.projectId === 1).length },
-    { id: 2, title: "Social Media Graphics", count: applications.filter(app => app.projectId === 2).length },
-    { id: 3, title: "Data Entry Work", count: applications.filter(app => app.projectId === 3).length }
+    ...projects.map(project => ({
+      id: project._id,
+      title: project.title,
+      count: project.applications.length
+    }))
   ];
 
   const filteredApplications = selectedProject === "all" 
@@ -264,17 +305,27 @@ const ClientApplications = () => {
 
                 {/* Actions */}
                 <div className="space-y-3">
-                  <button className="w-full px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium">
-                    Accept Application
-                  </button>
-                  <button className="w-full px-4 py-3 text-green-600 border border-green-600 rounded-lg hover:bg-green-50 transition-colors">
-                    Shortlist
-                  </button>
-                  <button className="w-full px-4 py-3 text-indigo-600 border border-indigo-600 rounded-lg hover:bg-indigo-50 transition-colors">
+                  {app.status === 'pending' && (
+                    <>
+                      <button
+                        onClick={() => handleStatusUpdate(app.id, 'accepted')}
+                        className="w-full px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
+                      >
+                        Accept Application
+                      </button>
+                      <button
+                        onClick={() => handleStatusUpdate(app.id, 'rejected')}
+                        className="w-full px-4 py-3 text-red-600 border border-red-600 rounded-lg hover:bg-red-50 transition-colors"
+                      >
+                        Reject
+                      </button>
+                    </>
+                  )}
+                  <button
+                    onClick={() => navigate(`/client/messages?userId=${app.student._id}`)}
+                    className="w-full px-4 py-3 text-indigo-600 border border-indigo-600 rounded-lg hover:bg-indigo-50 transition-colors"
+                  >
                     Message Student
-                  </button>
-                  <button className="w-full px-4 py-3 text-red-600 border border-red-300 rounded-lg hover:bg-red-50 transition-colors">
-                    Decline
                   </button>
                 </div>
               </div>
@@ -294,7 +345,10 @@ const ClientApplications = () => {
             <h1 className="text-2xl font-bold text-gray-900">Applications Received</h1>
             <p className="text-gray-600 mt-1">Review and manage applications for your posted projects</p>
           </div>
-          <button className="mt-4 sm:mt-0 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">
+          <button 
+            onClick={() => navigate('/client/post-project')}
+            className="mt-4 sm:mt-0 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+          >
             Post New Project
           </button>
         </div>
@@ -350,7 +404,7 @@ const ClientApplications = () => {
         {/* Project Filter */}
         <div className="bg-white rounded-xl shadow-sm border">
           <div className="flex flex-wrap border-b">
-            {projects.map((project) => (
+            {projectOptions.map((project) => (
               <button
                 key={project.id}
                 onClick={() => setSelectedProject(project.id)}
@@ -454,10 +508,26 @@ const ClientApplications = () => {
                       >
                         View Details
                       </button>
-                      <button className="px-4 py-2 text-green-600 border border-green-600 rounded-lg hover:bg-green-50 transition-colors text-sm">
-                        Accept
-                      </button>
-                      <button className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm">
+                      {application.status === 'pending' && (
+                        <>
+                          <button 
+                            onClick={() => handleStatusUpdate(application.id, 'accepted')}
+                            className="px-4 py-2 text-green-600 border border-green-600 rounded-lg hover:bg-green-50 transition-colors text-sm"
+                          >
+                            Accept
+                          </button>
+                          <button 
+                            onClick={() => handleStatusUpdate(application.id, 'rejected')}
+                            className="px-4 py-2 text-red-600 border border-red-600 rounded-lg hover:bg-red-50 transition-colors text-sm"
+                          >
+                            Reject
+                          </button>
+                        </>
+                      )}
+                      <button 
+                        onClick={() => navigate(`/client/messages?userId=${application.student._id}`)}
+                        className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm"
+                      >
                         Message
                       </button>
                     </div>

@@ -1,10 +1,20 @@
-import React, { useState } from "react";
-import { useParams } from "react-router-dom";
-import Navbar from "../components/Navbar";
-import Footer from "../components/Footer";
+import React, { useState, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
+import DashboardLayout from "../components/DashboardLayout";
+import API from "../utils/api"; // Import base API utility
+import { projectsAPI } from "../utils/projectsAPI";
+import { applicationsAPI } from "../utils/applicationsAPI";
 
 const ProjectDetail = () => {
   const { id } = useParams();
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  
+  const [project, setProject] = useState(null);
+  const [similarProjects, setSimilarProjects] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [showApplicationForm, setShowApplicationForm] = useState(false);
   const [applicationData, setApplicationData] = useState({
     coverLetter: "",
@@ -12,102 +22,150 @@ const ProjectDetail = () => {
     timeline: "",
     questions: ""
   });
+  const [submitting, setSubmitting] = useState(false);
+  const [applicationError, setApplicationError] = useState(null);
+  const [hasApplied, setHasApplied] = useState(false);
 
-  // Mock project data - in real app, this would come from API based on ID
-  const project = {
-    id: 1,
-    title: "WordPress Blog Setup for Food Blogger",
-    client: {
-      name: "Ravi Kumar",
-      company: "Foodie Delights Blog",
-      location: "Mumbai, Maharashtra",
-      rating: 4.7,
-      projectsPosted: 8,
-      hiredStudents: 12,
-      memberSince: "Jan 2024",
-      avatar: "RK"
-    },
-    budget: "₹3,800",
-    budgetType: "fixed",
-    status: "open",
-    deadline: "Dec 22, 2024",
-    postedDate: "3 days ago",
-    applications: 9,
-    description: `I'm looking for a talented student to help me set up a professional WordPress blog for my food content. This is a great opportunity for someone who wants to gain real-world experience while earning money.
-
-**What I need:**
-- Complete WordPress installation and setup
-- Food blog theme installation and customization
-- Basic SEO optimization setup
-- Contact forms and newsletter signup
-- Social media integration
-- Mobile-responsive design
-- Basic speed optimization
-
-**What you'll get:**
-- Real-world experience with WordPress
-- A great portfolio project
-- Positive review upon completion
-- Potential for future projects
-
-**Requirements:**
-- Basic knowledge of WordPress
-- Understanding of SEO basics  
-- Attention to detail
-- Good communication skills
-- Ability to work within deadlines`,
-    skills: ["WordPress", "SEO", "Web Development", "HTML/CSS"],
-    experienceLevel: "Beginner",
-    projectType: "Short-term",
-    category: "Web Development",
-    attachments: [
-      { name: "brand-colors.pdf", size: "2.3 MB" },
-      { name: "reference-sites.txt", size: "1.1 KB" }
-    ],
-    faqs: [
-      {
-        question: "Is this suitable for beginners?",
-        answer: "Yes! This project is perfect for students who have basic WordPress knowledge and want to gain experience."
-      },
-      {
-        question: "Will I get ongoing support?",
-        answer: "Absolutely. I'll be available for questions and provide clear feedback throughout the project."
-      },
-      {
-        question: "Can this lead to more projects?",
-        answer: "Yes, if you do great work, I have several other websites that need development help."
+  // Fetch project details
+  useEffect(() => {
+    const fetchProject = async () => {
+      try {
+        const response = await projectsAPI.getProjectById(id);
+        if (response.data.success) {
+          const projectData = response.data.data;
+          // Format the project data
+          setProject({
+            ...projectData,
+            budget: `₹${projectData.budget}`,
+            client: {
+              name: projectData.user.name,
+              avatar: projectData.user.name.split(' ').map(n => n[0]).join(''),
+              rating: projectData.user.rating || 0,
+              projectsPosted: projectData.user.projectsPosted || 0,
+              hiredStudents: projectData.user.hiredStudents || 0,
+              memberSince: new Date(projectData.user.createdAt).toLocaleDateString(),
+              location: projectData.user.location || 'Remote',
+              company: projectData.user.company || ''
+            },
+            skills: projectData.skillsRequired || [],
+            faqs: projectData.faqs || [],
+            attachments: projectData.attachments || [],
+            deadline: new Date(projectData.deadline).toLocaleDateString()
+          });
+          
+          // Fetch similar projects
+          const similarResponse = await projectsAPI.getProjects({
+            category: projectData.category,
+            limit: 3,
+            exclude: id
+          });
+          setSimilarProjects(formatProjects(similarResponse.data.projects || []));
+        }
+      } catch (err) {
+        setError(err.response?.data?.error || "Failed to load project details");
+      } finally {
+        setLoading(false);
       }
-    ]
+    };
+
+    fetchProject();
+  }, [id]);
+
+  // Check if user has already applied
+  useEffect(() => {
+    const checkApplication = async () => {
+      if (user && user.role === 'student') {
+        try {
+          const response = await applicationsAPI.getMyApplications();
+          const hasApplied = response.data.data.some(
+            app => app.project._id === id
+          );
+          setHasApplied(hasApplied);
+        } catch (err) {
+          console.error("Error checking application status:", err);
+        }
+      }
+    };
+
+    checkApplication();
+  }, [id, user]);
+  // Format similar projects
+  const formatProjects = (projects) => {
+    return projects.map(proj => ({
+      id: proj._id,
+      title: proj.title,
+      budget: `₹${proj.budget}`,
+      client: proj.user.name,
+      applications: proj.applicationsCount || 0
+    }));
   };
 
-  const similarProjects = [
-    {
-      id: 2,
-      title: "E-commerce Website Setup",
-      budget: "₹5,500",
-      client: "Tech Store",
-      applications: 15
-    },
-    {
-      id: 3,
-      title: "Portfolio Website Design",
-      budget: "₹2,800",
-      client: "Photographer",
-      applications: 8
-    },
-    {
-      id: 4,
-      title: "Blog Content Management",
-      budget: "₹1,200",
-      client: "Travel Blogger", 
-      applications: 12
+  const handleApplicationSubmit = async () => {
+    if (!user) {
+      navigate('/login', { state: { from: `/projects/${id}` } });
+      return;
     }
-  ];
 
-  const handleApplicationSubmit = () => {
-    console.log("Application submitted:", applicationData);
-    alert("Application submitted successfully!");
-    setShowApplicationForm(false);
+    if (user.role !== 'student') {
+      setApplicationError('Only students can apply to projects');
+      return;
+    }
+
+    // Validate fields
+    if (!applicationData.coverLetter.trim()) {
+      setApplicationError('Please provide a cover letter');
+      return;
+    }
+
+    if (!applicationData.proposedBudget) {
+      setApplicationError('Please enter your proposed budget');
+      return;
+    }
+
+    if (applicationData.proposedBudget < 0) {
+      setApplicationError('Budget cannot be negative');
+      return;
+    }
+
+    if (!applicationData.timeline) {
+      setApplicationError('Please select an estimated timeline');
+      return;
+    }
+
+    setSubmitting(true);
+    setApplicationError(null);
+
+    try {
+      console.log('Submitting application:', applicationData); // Debug log
+
+      // Convert proposed budget to number
+      const formData = {
+        ...applicationData,
+        proposedBudget: Number(applicationData.proposedBudget)
+      };
+
+      const response = await API.post(`/applications/project/${id}`, formData);
+      console.log('Application response:', response); // Debug log
+
+      if (response.data.success) {
+        setShowApplicationForm(false);
+        setHasApplied(true);
+        navigate('/student/applications', { 
+          state: { message: 'Application submitted successfully!', type: 'success' } 
+        });
+      } else {
+        setApplicationError(response.data.error || 'Failed to submit application');
+      }
+    } catch (err) {
+      console.error('Application error:', err); // Debug log
+      setApplicationError(
+        err.response?.data?.error || 
+        err.message || 
+        'Failed to submit application. Please try again.'
+      );
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const renderApplicationForm = () => (
@@ -199,22 +257,68 @@ const ProjectDetail = () => {
           >
             Cancel
           </button>
+          {applicationError && (
+            <div className="p-3 mb-4 text-sm text-red-600 bg-red-50 rounded-lg">
+              {applicationError}
+            </div>
+          )}
           <button
             onClick={handleApplicationSubmit}
-            className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+            disabled={submitting}
+            className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center"
           >
-            Submit Application
+            {submitting ? (
+              <>
+                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Submitting...
+              </>
+            ) : (
+              "Submit Application"
+            )}
           </button>
         </div>
       </div>
     </div>
   );
 
+  if (loading) {
+    return (
+      <DashboardLayout userType={user?.role || "student"}>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  if (error) {
+    return (
+      <DashboardLayout userType={user?.role || "student"}>
+        <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+          <h2 className="text-lg font-semibold text-red-800 mb-2">Error Loading Project</h2>
+          <p className="text-red-600">{error}</p>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  if (!project) {
+    return (
+      <DashboardLayout userType={user?.role || "student"}>
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 text-center">
+          <h2 className="text-lg font-semibold text-yellow-800 mb-2">Project Not Found</h2>
+          <p className="text-yellow-600">This project may have been removed or is no longer available.</p>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Navbar />
-      
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <DashboardLayout userType={user?.role || "student"}>
+      <div className="space-y-6">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-6">
@@ -224,13 +328,19 @@ const ProjectDetail = () => {
                 <div className="flex-1">
                   <h1 className="text-2xl font-bold text-gray-900 mb-2">{project.title}</h1>
                   <div className="flex items-center gap-4 text-sm text-gray-500">
-                    <span>📅 Posted {project.postedDate}</span>
-                    <span>📍 {project.client.location}</span>
-                    <span>📝 {project.applications} applications</span>
+                    <span>📅 Posted {new Date(project.createdAt).toLocaleDateString()}</span>
+                    <span>📍 {project.user.location || 'Remote'}</span>
+                    <span>📝 {project.applicationsCount} applications</span>
                   </div>
                 </div>
-                <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium">
-                  Open
+                <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                  project.status === 'open' 
+                    ? 'bg-green-100 text-green-800'
+                    : project.status === 'in-progress'
+                    ? 'bg-yellow-100 text-yellow-800'
+                    : 'bg-gray-100 text-gray-800'
+                }`}>
+                  {project.status.charAt(0).toUpperCase() + project.status.slice(1)}
                 </span>
               </div>
 
@@ -261,12 +371,44 @@ const ProjectDetail = () => {
                 ))}
               </div>
 
-              <button
-                onClick={() => setShowApplicationForm(true)}
-                className="w-full bg-indigo-600 text-white py-3 rounded-lg font-semibold hover:bg-indigo-700 transition-colors"
-              >
-                Apply Now
-              </button>
+              {user?.role === 'student' ? (
+                hasApplied ? (
+                  <button
+                    disabled
+                    className="w-full bg-gray-100 text-gray-500 py-3 rounded-lg font-semibold cursor-not-allowed"
+                  >
+                    Already Applied
+                  </button>
+                ) : project.status === 'open' ? (
+                  <button
+                    onClick={() => setShowApplicationForm(true)}
+                    className="w-full bg-indigo-600 text-white py-3 rounded-lg font-semibold hover:bg-indigo-700 transition-colors"
+                  >
+                    Apply Now
+                  </button>
+                ) : (
+                  <button
+                    disabled
+                    className="w-full bg-gray-100 text-gray-500 py-3 rounded-lg font-semibold cursor-not-allowed"
+                  >
+                    Project {project.status}
+                  </button>
+                )
+              ) : !user ? (
+                <button
+                  onClick={() => navigate('/login', { state: { from: `/projects/${id}` } })}
+                  className="w-full bg-indigo-600 text-white py-3 rounded-lg font-semibold hover:bg-indigo-700 transition-colors"
+                >
+                  Login to Apply
+                </button>
+              ) : (
+                <button
+                  disabled
+                  className="w-full bg-gray-100 text-gray-500 py-3 rounded-lg font-semibold cursor-not-allowed"
+                >
+                  Only Students Can Apply
+                </button>
+              )}
             </div>
 
             {/* Project Description */}
@@ -303,17 +445,19 @@ const ProjectDetail = () => {
             )}
 
             {/* FAQs */}
-            <div className="bg-white p-6 rounded-xl shadow-sm border">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Frequently Asked Questions</h3>
-              <div className="space-y-4">
-                {project.faqs.map((faq, index) => (
-                  <div key={index} className="border-b pb-4 last:border-b-0">
-                    <h4 className="font-medium text-gray-900 mb-2">Q: {faq.question}</h4>
-                    <p className="text-gray-600 text-sm">A: {faq.answer}</p>
-                  </div>
-                ))}
+            {project.faqs.length > 0 && (
+              <div className="bg-white p-6 rounded-xl shadow-sm border">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Frequently Asked Questions</h3>
+                <div className="space-y-4">
+                  {project.faqs.map((faq, index) => (
+                    <div key={index} className="border-b pb-4 last:border-b-0">
+                      <h4 className="font-medium text-gray-900 mb-2">Q: {faq.question}</h4>
+                      <p className="text-gray-600 text-sm">A: {faq.answer}</p>
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
           </div>
 
           {/* Sidebar */}
@@ -364,18 +508,26 @@ const ProjectDetail = () => {
             <div className="bg-white p-6 rounded-xl shadow-sm border">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Similar Projects</h3>
               <div className="space-y-4">
-                {similarProjects.map((similar) => (
-                  <div key={similar.id} className="border-b pb-4 last:border-b-0">
-                    <h4 className="font-medium text-gray-900 mb-1 hover:text-indigo-600 cursor-pointer">
-                      {similar.title}
-                    </h4>
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-gray-600">by {similar.client}</span>
-                      <span className="font-medium text-gray-900">{similar.budget}</span>
+                {similarProjects.length > 0 ? (
+                  similarProjects.map((similar) => (
+                    <div 
+                      key={similar.id} 
+                      className="border-b pb-4 last:border-b-0 cursor-pointer"
+                      onClick={() => navigate(`/projects/${similar.id}`)}
+                    >
+                      <h4 className="font-medium text-gray-900 mb-1 hover:text-indigo-600">
+                        {similar.title}
+                      </h4>
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-gray-600">by {similar.client}</span>
+                        <span className="font-medium text-gray-900">{similar.budget}</span>
+                      </div>
+                      <p className="text-xs text-gray-500 mt-1">{similar.applications} applications</p>
                     </div>
-                    <p className="text-xs text-gray-500 mt-1">{similar.applications} applications</p>
-                  </div>
-                ))}
+                  ))
+                ) : (
+                  <p className="text-gray-500 text-center py-4">No similar projects found</p>
+                )}
               </div>
             </div>
 
@@ -406,8 +558,7 @@ const ProjectDetail = () => {
       </div>
 
       {showApplicationForm && renderApplicationForm()}
-      <Footer />
-    </div>
+    </DashboardLayout>
   );
 };
 

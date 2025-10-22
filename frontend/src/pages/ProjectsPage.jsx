@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios"; // Import axios
-import Navbar from "../components/Navbar";
-import Footer from "../components/Footer";
+import DashboardLayout from "../components/DashboardLayout";
 import ProjectCard from "../components/ProjectCard";
+import API from "../utils/api"; // Import our API utility
 
 // (Optional but recommended) A custom hook to debounce the search term
 const useDebounce = (value, delay) => {
@@ -37,10 +36,33 @@ const ProjectsPage = () => {
   // --- 2. NEW: Debounce the search term to prevent API calls on every keystroke ---
   const debouncedSearchTerm = useDebounce(searchTerm, 500); // 500ms delay
 
-  // --- Filter options (Your existing data is perfect) ---
-  const categories = [ /* ...your categories array... */ ];
-  const priceRanges = [ /* ...your priceRanges array... */ ];
-  const sortOptions = [ /* ...your sortOptions array... */ ];
+  // --- Filter options ---
+  const categories = [
+    { value: "all", label: "All Categories" },
+    { value: "web-development", label: "Web Development" },
+    { value: "mobile-app", label: "Mobile App Development" },
+    { value: "graphic-design", label: "Graphic Design" },
+    { value: "content-writing", label: "Content Writing" },
+    { value: "digital-marketing", label: "Digital Marketing" },
+    { value: "video-editing", label: "Video Editing" },
+    { value: "data-entry", label: "Data Entry" },
+    { value: "translation", label: "Translation" }
+  ];
+
+  const priceRanges = [
+    { value: "all", label: "All Prices" },
+    { value: "0-100", label: "Under $100" },
+    { value: "100-500", label: "₹100 - ₹500" },
+    { value: "500-1000", label: "₹500 - ₹1000" },
+    { value: "1000-5000", label: "₹1000 - ₹5000" },
+    { value: "5000+", label: "₹5000+" }
+  ];
+
+  const sortOptions = [
+    { value: "newest", label: "Most Recent" },
+    { value: "budget-high", label: "Budget: High to Low" },
+    { value: "budget-low", label: "Budget: Low to High" }
+  ];
 
   // --- 3. NEW: useEffect hook to fetch data when filters change ---
   useEffect(() => {
@@ -72,11 +94,15 @@ const ProjectsPage = () => {
         params.append('limit', 9); // Or how many you want per page
 
         // Make the API call
-        const res = await axios.get(`http://localhost:5000/api/projects?${params.toString()}`);
+        const response = await API.get(`/projects?${params.toString()}`);
         
-        setProjects(res.data.projects);
-        setTotalProjects(res.data.totalProjects);
-        setTotalPages(res.data.totalPages);
+        if (response.data.success === false) {
+          throw new Error(response.data.error || 'Failed to fetch projects');
+        }
+
+        setProjects(response.data.projects);
+        setTotalProjects(response.data.totalProjects);
+        setTotalPages(response.data.totalPages);
 
       } catch (err) {
         setError("Failed to fetch projects. Please try again.");
@@ -95,23 +121,71 @@ const ProjectsPage = () => {
   // The backend now does all the heavy lifting!
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Navbar />
-      
-      {/* Header Section (No changes) */}
-      <div className="bg-white border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Find Your Next Project</h1>
-          <p className="text-gray-600">Discover opportunities that match your skills and grow your career</p>
+    <DashboardLayout userType="student">
+      <div className="space-y-6">
+        {/* Header Section */}
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Browse Projects</h1>
+          <p className="text-gray-600 mt-1">Discover opportunities that match your skills and grow your career</p>
         </div>
-      </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
           {/* Filters Sidebar (No changes to the JSX structure) */}
           <div className="lg:col-span-1">
             <div className="bg-white p-6 rounded-xl shadow-sm border">
-                {/* ... your filter inputs (search, category, price range) ... they will work as is */}
+                {/* Search Input */}
+                <div className="mb-6">
+                  <label htmlFor="search" className="block text-sm font-medium text-gray-700 mb-2">
+                    Search Projects
+                  </label>
+                  <input
+                    type="text"
+                    id="search"
+                    placeholder="Search by title or skills..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
+
+                {/* Category Filter */}
+                <div className="mb-6">
+                  <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-2">
+                    Category
+                  </label>
+                  <select
+                    id="category"
+                    value={selectedCategory}
+                    onChange={(e) => setSelectedCategory(e.target.value)}
+                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    {categories.map(category => (
+                      <option key={category.value} value={category.value}>
+                        {category.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Price Range Filter */}
+                <div className="mb-6">
+                  <label htmlFor="priceRange" className="block text-sm font-medium text-gray-700 mb-2">
+                    Price Range
+                  </label>
+                  <select
+                    id="priceRange"
+                    value={priceRange}
+                    onChange={(e) => setPriceRange(e.target.value)}
+                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    {priceRanges.map(range => (
+                      <option key={range.value} value={range.value}>
+                        {range.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
             </div>
           </div>
 
@@ -120,13 +194,26 @@ const ProjectsPage = () => {
             {/* Sort and Results Header */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
               <div>
-                {/* 5. UPDATE: Use state from backend */}
                 <h2 className="text-xl font-semibold text-gray-900">
                   {totalProjects} Projects Found
                 </h2>
-                {/* ... */}
+                <p className="text-sm text-gray-500 mt-1">
+                  Browse available projects that match your criteria
+                </p>
               </div>
-              {/* ... your sort dropdown ... it will work as is */}
+              <div className="mt-4 sm:mt-0">
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value)}
+                  className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  {sortOptions.map(option => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
 
             {/* --- 6. NEW: Handle Loading and Error states --- */}
@@ -173,8 +260,8 @@ const ProjectsPage = () => {
           </div>
         </div>
       </div>
-      <Footer />
-    </div>
+      </div>
+    </DashboardLayout>
   );
 };
 

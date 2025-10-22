@@ -19,6 +19,7 @@ import StudentEarnings from "./pages/StudentEarnings.jsx";
 import ProjectDetail from "./pages/ProjectDetail.jsx";
 import StudentActiveProjects from "./pages/StudentActiveProjects.jsx";
 import ClientApplications from "./pages/ClientApplications.jsx";
+import ClientProjects from "./pages/ClientProjects.jsx";
 import "./index.css";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
@@ -89,6 +90,11 @@ ReactDOM.createRoot(document.getElementById("root")).render(
               <ClientMessages />
             </ClientRoute>
           } />
+          <Route path="/client/projects" element={
+            <ClientRoute>
+              <ClientProjects />
+            </ClientRoute>
+          } />
           
           {/* General Authenticated Routes */}
           <Route path="/projects" element={
@@ -96,7 +102,7 @@ ReactDOM.createRoot(document.getElementById("root")).render(
               <ProjectsPage />
             </AuthenticatedRoute>
           } />
-          <Route path="/project/:id" element={
+          <Route path="/projects/:id" element={
             <AuthenticatedRoute>
               <ProjectDetail />
             </AuthenticatedRoute>

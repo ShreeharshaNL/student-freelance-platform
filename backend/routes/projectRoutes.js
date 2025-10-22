@@ -1,36 +1,29 @@
 const express = require('express');
 const router = express.Router();
-// highlight-next-line
-const { getProjects } = require('../controllers/projectController'); // Import the controller
 const { protect } = require('../middleware/authMiddleware');
-const Project = require('../models/projectModel');
+const {
+    getProjects,
+    createProject,
+    getProjectById,
+    getMyProjects,
+    getMyProjectsWithApplications,
+    calculateFees,
+    applyToProject,
+    getMyApplications,
+    updateApplicationStatus
+} = require('../controllers/projectController');
 
-// @route   POST /api/projects
-// @desc    Create a new project
-// @access  Private
-router.post('/', protect, async (req, res) => {
-    const { title, description, category, budget, skillsRequired } = req.body;
-    try {
-        const project = new Project({
-            user: req.user.id,
-            title,
-            description,
-            category,
-            budget,
-            skillsRequired,
-        });
-        const createdProject = await project.save();
-        res.status(201).json(createdProject);
-    } catch (error) {
-        console.error(error.message);
-        res.status(500).send('Server Error');
-    }
-});
+// Protected routes for project management
+router.post('/', protect, createProject); // Create project (clients only)
+router.post('/calculate-fees', protect, calculateFees); // Calculate project fees
+router.get('/my', protect, getMyProjects); // Get client's projects
+router.get('/my-with-applications', protect, getMyProjectsWithApplications); // Get client's projects with applications
+router.get('/my-applications', protect, getMyApplications); // Get student's applications
+router.post('/:id/apply', protect, applyToProject); // Apply to a project
+router.put('/applications/:id/status', protect, updateApplicationStatus); // Update application status
 
-// @route   GET /api/projects
-// @desc    Get all projects with filtering
-// @access  Public
-// highlight-next-line
-router.get('/', getProjects); // Use the new controller function
+// Public routes for project discovery
+router.get('/', getProjects); // Get all projects (with filters)
+router.get('/:id', getProjectById); // Get single project
 
 module.exports = router;

@@ -1,115 +1,73 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import DashboardLayout from "../components/DashboardLayout";
+import { applicationsAPI } from "../utils/applicationsAPI";
 
 const StudentApplications = () => {
   const [activeFilter, setActiveFilter] = useState("all");
+  const [applications, setApplications] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const location = useLocation();
+  const navigate = useNavigate();
 
-  // Mock applications data
-  const applications = [
-    {
-      id: 1,
-      projectTitle: "WordPress Blog Setup",
-      client: "Food Blogger",
-      appliedDate: "2 days ago",
-      status: "pending",
-      budget: "₹3,800",
-      proposedBudget: "₹3,500",
-      skills: ["WordPress", "SEO", "Web Development"],
-      coverLetter: "I have 2+ years of experience with WordPress and have completed similar blog setups for local businesses. I can deliver this within the timeline with quality work.",
-      deadline: "Dec 22, 2024",
-      message: null
-    },
-    {
-      id: 2,
-      projectTitle: "Instagram Post Designs",
-      client: "Fitness Trainer",
-      appliedDate: "1 day ago",
-      status: "accepted",
-      budget: "₹2,200",
-      proposedBudget: "₹2,000",
-      skills: ["Graphic Design", "Canva", "Social Media"],
-      coverLetter: "I specialize in fitness and health-related designs. My portfolio includes similar work for fitness brands.",
-      deadline: "Dec 15, 2024",
-      message: "Congratulations! We'd like to work with you on this project. Please check your messages for project details."
-    },
-    {
-      id: 3,
-      projectTitle: "Simple Business Website",
-      client: "Local Grocery Store",
-      appliedDate: "5 hours ago",
-      status: "pending",
-      budget: "₹4,500",
-      proposedBudget: "₹4,200",
-      skills: ["HTML", "CSS", "JavaScript", "Responsive Design"],
-      coverLetter: "I can create a modern, mobile-friendly website for your grocery store with all the pages you mentioned.",
-      deadline: "Dec 20, 2024",
-      message: null
-    },
-    {
-      id: 4,
-      projectTitle: "Product Data Entry",
-      client: "E-commerce Store",
-      appliedDate: "3 days ago",
-      status: "rejected",
-      budget: "₹1,800",
-      proposedBudget: "₹1,800",
-      skills: ["Data Entry", "Excel", "Attention to Detail"],
-      coverLetter: "I have experience with data entry and can ensure 100% accuracy in product information entry.",
-      deadline: "Dec 12, 2024",
-      message: "Thank you for your interest. We've decided to go with another candidate who had more specific e-commerce experience."
-    },
-    {
-      id: 5,
-      projectTitle: "YouTube Thumbnail Design",
-      client: "Educational YouTuber",
-      appliedDate: "1 week ago",
-      status: "in_progress",
-      budget: "₹1,500",
-      proposedBudget: "₹1,400",
-      skills: ["Graphic Design", "Photoshop", "YouTube"],
-      coverLetter: "I understand YouTube thumbnail psychology and can create engaging, click-worthy thumbnails.",
-      deadline: "Dec 18, 2024",
-      message: "Project started! Please deliver the first 5 thumbnails by this Friday."
-    },
-    {
-      id: 6,
-      projectTitle: "Blog Content Writing",
-      client: "Tech Startup",
-      appliedDate: "4 days ago",
-      status: "pending",
-      budget: "₹3,000",
-      proposedBudget: "₹2,800",
-      skills: ["Content Writing", "SEO", "Research"],
-      coverLetter: "I'm a computer science student with strong writing skills and understanding of tech trends.",
-      deadline: "Dec 25, 2024",
-      message: null
-    }
-  ];
+  useEffect(() => {
+          const fetchApplications = async () => {
+      try {
+        const response = await applicationsAPI.getMyApplications();
+        const formattedApplications = response.data.data.map(app => ({
+          id: app._id,
+          projectTitle: app.project.title,
+          client: app.project.user.name,
+          appliedDate: new Date(app.createdAt).toLocaleDateString(),
+          status: app.status,
+          budget: `₹${app.project.budget}`,
+          proposedBudget: `₹${app.proposedBudget}`,
+          skills: [], // You might want to get this from project or student profile
+          coverLetter: app.coverLetter,
+          deadline: new Date(app.project.deadline).toLocaleDateString(),
+          message: null,
+          timeline: app.timeline,
+          project: app.project
+        }));
+        setApplications(formattedApplications);
+      } catch (err) {
+        setError(err.response?.data?.error || 'Failed to load applications');
+      } finally {
+        setLoading(false);
+      }
+    };    fetchApplications();
+  }, []);
+
+  // Application statuses and their labels
+  const statusLabels = {
+    pending: "Pending Review",
+    accepted: "Accepted",
+    rejected: "Rejected",
+    in_progress: "In Progress"
+  };
 
   const filters = [
-    { id: "all", label: "All Applications", count: applications.length },
-    { id: "pending", label: "Pending", count: applications.filter(a => a.status === "pending").length },
-    { id: "accepted", label: "Accepted", count: applications.filter(a => a.status === "accepted").length },
-    { id: "in_progress", label: "In Progress", count: applications.filter(a => a.status === "in_progress").length },
-    { id: "rejected", label: "Rejected", count: applications.filter(a => a.status === "rejected").length }
+    { id: "all", label: "All Applications", count: applications?.length || 0 },
+    { id: "pending", label: "Pending Review", count: applications?.filter(a => a.status === "pending")?.length || 0 },
+    { id: "accepted", label: "Accepted", count: applications?.filter(a => a.status === "accepted")?.length || 0 },
+    { id: "rejected", label: "Rejected", count: applications?.filter(a => a.status === "rejected")?.length || 0 }
   ];
 
   const filteredApplications = activeFilter === "all" 
-    ? applications 
-    : applications.filter(app => app.status === activeFilter);
+    ? applications || []
+    : (applications || []).filter(app => app.status === activeFilter);
 
   const getStatusBadge = (status) => {
     const statusStyles = {
       pending: "bg-yellow-100 text-yellow-800",
       accepted: "bg-green-100 text-green-800",
-      in_progress: "bg-blue-100 text-blue-800",
       rejected: "bg-red-100 text-red-800"
     };
 
     const statusLabels = {
       pending: "Pending Review",
       accepted: "Accepted",
-      in_progress: "In Progress",
       rejected: "Rejected"
     };
     
@@ -124,15 +82,42 @@ const StudentApplications = () => {
     const icons = {
       pending: "⏳",
       accepted: "✅",
-      in_progress: "🚀",
-      rejected: "❌"
+      rejected: "❌",
+      "in_progress": "🔄"
     };
-    return icons[status];
+
+    return icons[status] || "❓"; // Return question mark if status is unknown
   };
+
+  if (loading) {
+    return (
+      <DashboardLayout userType="student">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout userType="student">
       <div className="space-y-6">
+        {/* Success Message */}
+        {location.state?.message && (
+          <div className={`p-4 rounded-lg ${
+            location.state?.type === 'success' ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'
+          }`}>
+            {location.state.message}
+          </div>
+        )}
+
+        {/* Error Message */}
+        {error && (
+          <div className="p-4 bg-red-50 text-red-800 rounded-lg">
+            {error}
+          </div>
+        )}
+
         {/* Page Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center">
           <div>
@@ -288,25 +273,41 @@ const StudentApplications = () => {
                     <div className="flex flex-col sm:flex-row lg:flex-col gap-2 lg:w-32">
                       {application.status === "pending" && (
                         <>
-                          <button className="px-4 py-2 text-indigo-600 border border-indigo-600 rounded-lg hover:bg-indigo-50 transition-colors text-sm">
-                            Edit Application
+                          <button 
+                            onClick={() => navigate(`/projects/${application.project._id}`)}
+                            className="px-4 py-2 text-indigo-600 border border-indigo-600 rounded-lg hover:bg-indigo-50 transition-colors text-sm"
+                          >
+                            View Project
                           </button>
-                          <button className="px-4 py-2 text-red-600 border border-red-300 rounded-lg hover:bg-red-50 transition-colors text-sm">
+                          <button 
+                            onClick={async () => {
+                              if (window.confirm('Are you sure you want to withdraw your application?')) {
+                                try {
+                                  await applicationsAPI.deleteApplication(application._id);
+                                  setApplications(apps => apps.filter(app => app._id !== application._id));
+                                } catch (err) {
+                                  setError(err.response?.data?.error || 'Failed to withdraw application');
+                                }
+                              }
+                            }}
+                            className="px-4 py-2 text-red-600 border border-red-300 rounded-lg hover:bg-red-50 transition-colors text-sm"
+                          >
                             Withdraw
                           </button>
                         </>
                       )}
                       {application.status === "accepted" && (
-                        <button className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm">
-                          Start Project
-                        </button>
-                      )}
-                      {application.status === "in_progress" && (
-                        <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm">
+                        <button 
+                          onClick={() => navigate(`/projects/${application.project._id}`)}
+                          className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm"
+                        >
                           View Project
                         </button>
                       )}
-                      <button className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm">
+                      <button 
+                        onClick={() => navigate(`/projects/${application.project._id}`)}
+                        className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm"
+                      >
                         View Details
                       </button>
                     </div>

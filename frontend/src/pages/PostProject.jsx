@@ -1,5 +1,7 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../components/DashboardLayout";
+import { projectsAPI } from "../utils/projectsAPI";
 
 const PostProject = () => {
   const [currentStep, setCurrentStep] = useState(1);
@@ -56,10 +58,86 @@ const PostProject = () => {
     if (currentStep > 1) setCurrentStep(currentStep - 1);
   };
 
-  const handleSubmit = () => {
-    console.log("Project Data:", formData);
-    // Handle project submission
-    alert("Project posted successfully!");
+  const navigate = useNavigate();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState("");
+
+  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [isFeatured, setIsFeatured] = useState(false);
+  const [isUrgent, setIsUrgent] = useState(false);
+
+  const handleSubmit = async () => {
+    // Reset error state
+    setError("");
+
+    // Validate required fields
+    if (!formData.title || !formData.category || !formData.description || !formData.budget || !formData.deadline) {
+      setError("Please fill in all required fields");
+      return;
+    }
+
+    // Validate category selection
+    if (formData.category === "") {
+      setError("Please select a project category");
+      return;
+    }
+
+    // Validate terms acceptance
+    if (!termsAccepted) {
+      setError("Please accept the terms and conditions");
+      return;
+    }
+
+    // Validate skills
+    if (formData.skills.length === 0) {
+      setError("Please select at least one required skill");
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      // Prepare project data
+      const projectData = {
+        title: formData.title,
+        category: formData.category,
+        description: formData.description,
+        budget: Number(formData.budget),
+        budgetType: formData.budgetType,
+        skillsRequired: formData.skills,
+        deadline: formData.deadline,
+        experienceLevel: formData.experienceLevel,
+        projectType: formData.projectType,
+        isFeatured: isFeatured,
+        isUrgent: isUrgent
+      };
+
+      const response = await projectsAPI.createProject(projectData);
+
+      if (response.data.success) {
+        // Redirect to dashboard with success message
+        navigate('/client/dashboard', { 
+          state: { 
+            message: 'Project posted successfully!',
+            type: 'success'
+          } 
+        });
+      }
+    } catch (err) {
+      console.error('Project creation error:', err);
+      setError(
+        err.response?.data?.error || 
+        "Failed to post project. Please check your input and try again."
+      );
+      
+      // Scroll to error message
+      window.scrollTo({
+        top: 0,
+        behavior: 'smooth'
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const renderStep1 = () => (
@@ -358,10 +436,47 @@ const PostProject = () => {
         </div>
       </div>
 
+            {/* Additional Options */}
+      <div className="space-y-4">
+        <h4 className="font-semibold text-gray-900">Additional Options</h4>
+        
+        <div className="flex items-center gap-3">
+          <input 
+            type="checkbox" 
+            id="featured" 
+            checked={isFeatured}
+            onChange={(e) => setIsFeatured(e.target.checked)}
+            className="rounded text-indigo-600 focus:ring-indigo-500"
+          />
+          <label htmlFor="featured" className="text-sm text-gray-700">
+            Make this a featured project (+₹100) - Get more visibility and applications
+          </label>
+        </div>
+        
+        <div className="flex items-center gap-3">
+          <input 
+            type="checkbox" 
+            id="urgent" 
+            checked={isUrgent}
+            onChange={(e) => setIsUrgent(e.target.checked)}
+            className="rounded text-indigo-600 focus:ring-indigo-500"
+          />
+          <label htmlFor="urgent" className="text-sm text-gray-700">
+            Mark as urgent (+₹50) - Show urgency badge to attract faster responses
+          </label>
+        </div>
+      </div>
+
       {/* Terms */}
       <div className="border-t pt-6">
         <div className="flex items-start gap-3">
-          <input type="checkbox" id="terms" className="rounded mt-1" required />
+          <input 
+            type="checkbox" 
+            id="terms" 
+            checked={termsAccepted}
+            onChange={(e) => setTermsAccepted(e.target.checked)}
+            className="rounded mt-1 text-indigo-600 focus:ring-indigo-500" 
+          />
           <label htmlFor="terms" className="text-sm text-gray-700 leading-relaxed">
             I agree to the <a href="#" className="text-indigo-600 hover:text-indigo-700">Terms of Service</a> and 
             confirm that this project complies with our community guidelines. I understand that I'll be charged 
@@ -423,7 +538,7 @@ const PostProject = () => {
           </div>
 
           {/* Navigation Buttons */}
-          <div className="flex justify-between pt-6 border-t">
+          <div className="flex justify-between pt-6 border-t relative">
             <button
               onClick={handleBack}
               disabled={currentStep === 1}
@@ -432,12 +547,29 @@ const PostProject = () => {
               Back
             </button>
             
+            {error && (
+              <div className="absolute bottom-full left-0 right-0 mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                <p className="text-red-600 text-sm">{error}</p>
+              </div>
+            )}
+
             {currentStep === 3 ? (
               <button
                 onClick={handleSubmit}
-                className="px-8 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium"
+                disabled={isSubmitting}
+                className="px-8 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center"
               >
-                Post Project
+                {isSubmitting ? (
+                  <>
+                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Posting Project...
+                  </>
+                ) : (
+                  "Post Project"
+                )}
               </button>
             ) : (
               <button
