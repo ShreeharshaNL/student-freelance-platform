@@ -1,6 +1,6 @@
 const mongoose = require("mongoose");
 
-const clientProfileSchema = new mongoose.Schema(
+const ClientProfileSchema = new mongoose.Schema(
   {
     user: {
       type: mongoose.Schema.Types.ObjectId,
@@ -8,67 +8,37 @@ const clientProfileSchema = new mongoose.Schema(
       required: true,
       unique: true,
     },
-    
-    // Company Info
-    companyName: {
-      type: String,
-      default: "",
-    },
-    industryType: {
-      type: String,
-      default: "",
-    },
-    companySize: {
-      type: String,
-      default: "",
-    },
-    companyWebsite: {
-      type: String,
-      default: "",
-    },
-    location: {
-      type: String,
-      default: "",
-    },
-    description: {
-      type: String,
-      default: "",
-      maxlength: 1000,
-    },
-    profileImage: {
-      type: String,
-      default: null,
-    },
-    
-    // Stats
-    rating: {
-      type: Number,
-      default: 0,
-      min: 0,
-      max: 5,
-    },
-    totalReviews: {
-      type: Number,
-      default: 0,
-    },
-    projectsPosted: {
-      type: Number,
-      default: 0,
-    },
-    totalSpent: {
-      type: Number,
-      default: 0,
-    },
-    hiredStudents: {
-      type: Number,
-      default: 0,
-    },
-    responseTime: {
-      type: String,
-      default: "N/A",
-    },
+
+    // Header / basics
+    companyName: { type: String, trim: true, default: "New Company" },
+    industryType: { type: String, trim: true, default: "" },
+    location: { type: String, trim: true, default: "" },
+    joinDate: { type: String, default: "" },        // keep as string to match frontend
+    website: { type: String, trim: true, default: "" },
+    companySize: { type: String, trim: true, default: "" },
+    profileImage: { type: String, trim: true, default: "" },
+
+    // Stats (types match your frontend expectations)
+    rating: { type: Number, default: 0 },
+    totalReviews: { type: Number, default: 0 },
+    projectsPosted: { type: Number, default: 0 },
+    totalSpent: { type: String, default: "₹0" },    // ⚠️ string, not number
+    hiredStudents: { type: Number, default: 0 },
+    responseTime: { type: String, trim: true, default: "" },
+
+    // About
+    description: { type: String, trim: true, default: "" },
+
+    // Collections (stay arrays; frontend renders arrays)
+    postedProjects: { type: Array, default: [] },
+    hiredHistory: { type: Array, default: [] },
+    reviews: { type: Array, default: [] },
+    stats: { type: Array, default: [] },            // ⚠️ array, not object
   },
   { timestamps: true }
 );
 
-module.exports = mongoose.model("ClientProfile", clientProfileSchema);
+// Prevent OverwriteModelError on dev reloads
+module.exports =
+  mongoose.models.ClientProfile ||
+  mongoose.model("ClientProfile", ClientProfileSchema);
