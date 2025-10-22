@@ -1,6 +1,6 @@
 const mongoose = require("mongoose");
 
-const studentProfileSchema = new mongoose.Schema(
+const StudentProfileSchema = new mongoose.Schema(
   {
     user: {
       type: mongoose.Schema.Types.ObjectId,
@@ -8,82 +8,69 @@ const studentProfileSchema = new mongoose.Schema(
       required: true,
       unique: true,
     },
-    
-    // Profile Info
-    title: {
-      type: String,
-      default: "",
-    },
-    bio: {
-      type: String,
-      default: "",
-      maxlength: 1000,
-    },
-    location: {
-      type: String,
-      default: "",
-    },
-    profileImage: {
-      type: String,
-      default: null,
-    },
-    
+
+    // Basic Info
+    title: { type: String, trim: true, default: "" },
+    bio: { type: String, trim: true, default: "" },
+    location: { type: String, trim: true, default: "" },
+    website: { type: String, trim: true, default: "" },
+    responseTime: { type: String, trim: true, default: "" },
+
     // Skills
-    skills: [{
-      name: { type: String, required: true },
-      level: { type: Number, min: 0, max: 100, default: 0 },
-      projects: { type: Number, default: 0 }
-    }],
-    
-    // Education
-    education: [{
-      degree: String,
-      school: String,
-      year: String,
-      status: String
-    }],
-    
-    // Certifications
-    certifications: [{
-      name: String,
-      issuer: String,
-      year: String
-    }],
-    
+    skills: {
+      type: [
+        {
+          name: { type: String, required: true },
+          level: { type: Number, default: 0 },
+          projects: { type: Number, default: 0 },
+        },
+      ],
+      default: [],
+    },
+
     // Portfolio
-    portfolio: [{
-      title: String,
-      description: String,
-      image: String,
-      technologies: [String],
-      link: String
-    }],
-    
-    // Stats
-    rating: {
-      type: Number,
-      default: 0,
-      min: 0,
-      max: 5,
+    portfolio: {
+      type: [
+        {
+          title: { type: String, required: true },
+          description: { type: String, required: true },
+          image: { type: String, default: "💼" },
+          technologies: { type: [String], default: [] },
+          link: { type: String, default: "#" },
+        },
+      ],
+      default: [],
     },
-    totalReviews: {
-      type: Number,
-      default: 0,
+
+    // Education
+    education: {
+      type: [
+        {
+          degree: { type: String, required: true },
+          school: { type: String, required: true },
+          year: { type: String, default: "" },
+          status: { type: String, default: "" },
+        },
+      ],
+      default: [],
     },
-    completedProjects: {
-      type: Number,
-      default: 0,
-    },
-    totalEarnings: {
-      type: Number,
-      default: 0,
-    },
-    responseTime: {
-      type: String,
-      default: "N/A",
+
+    // Certifications
+    certifications: {
+      type: [
+        {
+          name: { type: String, required: true },
+          issuer: { type: String, required: true },
+          year: { type: String, default: "" },
+        },
+      ],
+      default: [],
     },
   },
   { timestamps: true }
 );
 
-module.exports = mongoose.model("StudentProfile", studentProfileSchema);
+// ✅ Prevent OverwriteModelError during nodemon reloads
+module.exports =
+  mongoose.models.StudentProfile ||
+  mongoose.model("StudentProfile", StudentProfileSchema);
