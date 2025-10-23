@@ -63,7 +63,17 @@ exports.getProfile = async (req, res) => {
       return res.status(400).json({ success: false, error: "Unsupported role" });
     }
 
-    return res.json({ success: true, role: user.role, data: profile });
+    // Combine user and profile data for a complete response
+    const responseData = {
+      ...profile.toObject(),
+      name: user.name,
+      email: user.email,
+      phone: user.phone,
+      role: user.role,
+      createdAt: user.createdAt
+    };
+
+    return res.json({ success: true, role: user.role, data: responseData });
   } catch (err) {
     console.error("Get profile error:", err);
     return res.status(500).json({ success: false, error: "Server error" });

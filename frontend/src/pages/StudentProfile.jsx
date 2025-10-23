@@ -29,11 +29,13 @@ const StudentProfile = () => {
       setLoading(true);
       const response = await profileAPI.getProfile();
       if (response.success) {
-        setStudentData(response.data.user);
+        // backend returns { success, role, data }
+        const profile = response.data;
+        setStudentData(profile);
         setEditData({
-          bio: response.data.user.bio || "",
-          title: response.data.user.title || "",
-          location: response.data.user.location || "",
+          bio: profile.bio || "",
+          title: profile.title || "",
+          location: profile.location || "",
         });
       }
     } catch (error) {
@@ -48,7 +50,8 @@ const StudentProfile = () => {
     try {
       const response = await profileAPI.updateProfile(editData);
       if (response.success) {
-        setStudentData(response.data.user);
+        const profile = response.data;
+        setStudentData(profile);
         setIsEditing(false);
         alert("Profile updated successfully!");
       }
@@ -284,7 +287,7 @@ const StudentProfile = () => {
                 <div className="flex justify-between items-center">
                   <span className="text-sm font-medium text-gray-700">{skill.name}</span>
                   <div className="flex items-center gap-2">
-                    <span className="text-xs text-gray-500">{skill.projects} projects</span>
+                    {/* <span className="text-xs text-gray-500">{skill.projects} projects</span> */}
                     <button
                       onClick={() => handleDeleteSkill(skill._id)}
                       className="text-red-500 hover:text-red-700 text-xs"
