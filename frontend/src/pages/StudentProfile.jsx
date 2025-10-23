@@ -284,7 +284,7 @@ const StudentProfile = () => {
                 <div className="flex justify-between items-center">
                   <span className="text-sm font-medium text-gray-700">{skill.name}</span>
                   <div className="flex items-center gap-2">
-                    <span className="text-xs text-gray-500">{skill.projects} projects</span>
+                    {/* <span className="text-xs text-gray-500">{skill.projects} projects</span> */}
                     <button
                       onClick={() => handleDeleteSkill(skill._id)}
                       className="text-red-500 hover:text-red-700 text-xs"
