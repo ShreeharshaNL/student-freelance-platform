@@ -87,20 +87,6 @@ const DashboardLayout = ({ children, userType = "student" }) => {
 
           <div className="mt-8 pt-8 border-t">
             <div className="space-y-2">
-              <Link
-                to="/help"
-                className="flex items-center px-4 py-3 text-sm font-medium text-gray-600 rounded-lg hover:bg-gray-50 hover:text-gray-900 transition-colors"
-              >
-                <span className="mr-3 text-lg">❓</span>
-                Help & Support
-              </Link>
-              <Link
-                to="/settings"
-                className="flex items-center px-4 py-3 text-sm font-medium text-gray-600 rounded-lg hover:bg-gray-50 hover:text-gray-900 transition-colors"
-              >
-                <span className="mr-3 text-lg">⚙️</span>
-                Settings
-              </Link>
               <button
                 className="flex items-center w-full px-4 py-3 text-sm font-medium text-gray-600 rounded-lg hover:bg-red-50 hover:text-red-700 transition-colors"
                 onClick={handleLogout}

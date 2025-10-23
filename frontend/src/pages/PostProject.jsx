@@ -422,25 +422,6 @@ const PostProject = () => {
         <h4 className="font-semibold text-gray-900">Additional Options</h4>
         
         <div className="flex items-center gap-3">
-          <input type="checkbox" id="featured" className="rounded" />
-          <label htmlFor="featured" className="text-sm text-gray-700">
-            Make this a featured project (+₹100) - Get more visibility and applications
-          </label>
-        </div>
-        
-        <div className="flex items-center gap-3">
-          <input type="checkbox" id="urgent" className="rounded" />
-          <label htmlFor="urgent" className="text-sm text-gray-700">
-            Mark as urgent (+₹50) - Show urgency badge to attract faster responses
-          </label>
-        </div>
-      </div>
-
-            {/* Additional Options */}
-      <div className="space-y-4">
-        <h4 className="font-semibold text-gray-900">Additional Options</h4>
-        
-        <div className="flex items-center gap-3">
           <input 
             type="checkbox" 
             id="featured" 
