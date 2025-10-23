@@ -1,247 +1,482 @@
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState, memo } from "react";
 import DashboardLayout from "../components/DashboardLayout";
 import ProjectCard from "../components/ProjectCard";
+import api from "../utils/api";
+import { useAuth } from "../context/AuthContext";
 
-const ClientProfile = () => {
+/* ----------------- Small utils ----------------- */
+
+const pickDefined = (obj) =>
+  Object.fromEntries(Object.entries(obj).filter(([, v]) => v !== undefined));
+
+/* ----------------- Child components (memoized) ----------------- */
+
+const Stars = ({ value = 0 }) =>
+  Array.from({ length: 5 }, (_, i) => (
+    <span key={i} className={i < Math.floor(value) ? "text-yellow-400" : "text-gray-300"}>
+      ⭐
+    </span>
+  ));
+
+const HeaderCard = memo(function HeaderCard({
+  profile,
+  draft,
+  editMode,
+  canSave,
+  saving,
+  onStartEdit,
+  onCancel,
+  onSave,
+  onChange,
+}) {
+  return (
+    <div className="bg-white p-6 rounded-xl shadow-sm border">
+      <div className="flex flex-col md:flex-row gap-6">
+        {/* Logo */}
+        <div className="flex-shrink-0">
+          <div className="w-24 h-24 bg-blue-600 rounded-full flex items-center justify-center">
+            <span className="text-white text-2xl font-bold">
+              {(profile.companyName || "TC").slice(0, 2).toUpperCase()}
+            </span>
+          </div>
+        </div>
+
+        {/* Info */}
+        <div className="flex-1">
+          <div className="flex flex-col md:flex-row md:items-start md:justify-between mb-4">
+            <div className="w-full md:max-w-xl">
+              {editMode ? (
+                <>
+                  <input
+                    className="text-2xl font-bold text-gray-900 border rounded-lg p-2 w-full mb-2"
+                    value={draft.companyName ?? ""}
+                    onChange={(e) => onChange("companyName", e.target.value)}
+                    placeholder="Company name"
+                    autoFocus
+                  />
+                  <input
+                    className="text-lg text-gray-600 border rounded-lg p-2 w-full"
+                    value={draft.industryType ?? ""}
+                    onChange={(e) => onChange("industryType", e.target.value)}
+                    placeholder="Industry type"
+                  />
+                </>
+              ) : (
+                <>
+                  <h1 className="text-2xl font-bold text-gray-900">{profile.companyName || "—"}</h1>
+                  <p className="text-lg text-gray-600">{profile.industryType || "—"}</p>
+                </>
+              )}
+
+              <div className="flex items-center gap-4 mt-2 text-sm text-gray-500">
+                <span>📍 {profile.location || "—"}</span>
+                <span>📅 Member since {profile.joinDate || "—"}</span>
+              </div>
+            </div>
+
+            {!editMode ? (
+              <button
+                onClick={() => onStartEdit()}
+                className="mt-4 md:mt-0 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Edit Profile
+              </button>
+            ) : (
+              <div className="flex gap-2 mt-4 md:mt-0">
+                <button
+                  disabled={!canSave}
+                  onClick={onSave}
+                  className={`px-4 py-2 rounded-lg text-white ${saving ? "bg-gray-400" : "bg-indigo-600 hover:bg-indigo-700"}`}
+                >
+                  {saving ? "Saving…" : "Save"}
+                </button>
+                <button onClick={onCancel} className="px-4 py-2 rounded-lg border">
+                  Cancel
+                </button>
+              </div>
+            )}
+          </div>
+
+          <div className="flex flex-wrap items-center gap-6">
+            <div className="flex items-center gap-2">
+              <div className="flex">
+                <Stars value={profile.rating || 0} />
+              </div>
+              <span className="font-medium text-gray-900">{profile.rating || 0}</span>
+              <span className="text-gray-500">({profile.totalReviews || 0} reviews)</span>
+            </div>
+            <div className="h-4 w-px bg-gray-300"></div>
+            <div className="text-sm text-gray-600">
+              <span className="font-medium text-gray-900">{profile.projectsPosted || 0}</span> projects posted
+            </div>
+            <div className="h-4 w-px bg-gray-300"></div>
+            <div className="text-sm text-gray-600">
+              <span className="font-medium text-gray-900">{profile.hiredStudents || 0}</span> students hired
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+});
+
+const AboutCard = memo(function AboutCard({
+  profile,
+  draft,
+  editMode,
+  canSave,
+  saving,
+  onStartEdit,
+  onCancel,
+  onSave,
+  onChange,
+}) {
+  return (
+    <div className="bg-white p-6 rounded-xl shadow-sm border">
+      <div className="flex justify-between items-center mb-4">
+        <h3 className="text-lg font-semibold text-gray-900">About Company</h3>
+        {!editMode ? (
+          <button onClick={onStartEdit} className="text-indigo-600 hover:text-indigo-700 text-sm font-medium">
+            Edit
+          </button>
+        ) : (
+          <div className="flex gap-2">
+            <button
+              disabled={!canSave}
+              onClick={onSave}
+              className={`px-3 py-1.5 rounded-lg text-white ${saving ? "bg-gray-400" : "bg-indigo-600 hover:bg-indigo-700"}`}
+            >
+              {saving ? "Saving…" : "Save"}
+            </button>
+            <button onClick={onCancel} className="px-3 py-1.5 rounded-lg border">
+              Cancel
+            </button>
+          </div>
+        )}
+      </div>
+
+      {editMode ? (
+        <textarea
+          className="w-full p-3 border rounded-lg resize-none"
+          rows="4"
+          value={draft.description ?? ""}
+          onChange={(e) => onChange("description", e.target.value)}
+          placeholder="Describe your company…"
+          autoFocus
+        />
+      ) : (
+        <p className="text-gray-600 leading-relaxed">{profile.description || "No description yet."}</p>
+      )}
+    </div>
+  );
+});
+
+const DetailsCard = memo(function DetailsCard({
+  profile,
+  draft,
+  editMode,
+  canSave,
+  saving,
+  onStartEdit,
+  onCancel,
+  onSave,
+  onChange,
+}) {
+  return (
+    <div className="bg-white p-6 rounded-xl shadow-sm border">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-lg font-semibold text-gray-900">Company Details</h3>
+        {!editMode ? (
+          <button onClick={onStartEdit} className="text-indigo-600 hover:text-indigo-700 text-sm font-medium">
+            Edit
+          </button>
+        ) : (
+          <div className="flex gap-2">
+            <button
+              disabled={!canSave}
+              onClick={onSave}
+              className={`px-3 py-1.5 rounded-lg text-white ${saving ? "bg-gray-400" : "bg-indigo-600 hover:bg-indigo-700"}`}
+            >
+              {saving ? "Saving…" : "Save"}
+            </button>
+            <button onClick={onCancel} className="px-3 py-1.5 rounded-lg border">
+              Cancel
+            </button>
+          </div>
+        )}
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="space-y-3">
+          {/* Industry */}
+          <div className="flex items-center gap-3">
+            <span className="text-gray-500">🏢</span>
+            <div className="flex-1">
+              <p className="text-sm text-gray-500">Industry</p>
+              {editMode ? (
+                <input
+                  className="w-full p-2 border rounded-lg"
+                  value={draft.industryType ?? ""}
+                  onChange={(e) => onChange("industryType", e.target.value)}
+                />
+              ) : (
+                <p className="font-medium text-gray-900">{profile.industryType || "—"}</p>
+              )}
+            </div>
+          </div>
+
+          {/* Location */}
+          <div className="flex items-center gap-3">
+            <span className="text-gray-500">📍</span>
+            <div className="flex-1">
+              <p className="text-sm text-gray-500">Location</p>
+              {editMode ? (
+                <input
+                  className="w-full p-2 border rounded-lg"
+                  value={draft.location ?? ""}
+                  onChange={(e) => onChange("location", e.target.value)}
+                />
+              ) : (
+                <p className="font-medium text-gray-900">{profile.location || "—"}</p>
+              )}
+            </div>
+          </div>
+
+          {/* Website */}
+          <div className="flex items-center gap-3">
+            <span className="text-gray-500">🌐</span>
+            <div className="flex-1">
+              <p className="text-sm text-gray-500">Website</p>
+              {editMode ? (
+                <input
+                  className="w-full p-2 border rounded-lg"
+                  value={draft.website ?? ""}
+                  onChange={(e) => onChange("website", e.target.value)}
+                />
+              ) : profile.website ? (
+                <a
+                  href={`https://${profile.website.replace(/^https?:\/\//, "")}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="font-medium text-indigo-600 hover:text-indigo-700"
+                >
+                  {profile.website}
+                </a>
+              ) : (
+                <span className="text-gray-500">—</span>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="space-y-3">
+          {/* Size */}
+          <div className="flex items-center gap-3">
+            <span className="text-gray-500">👥</span>
+            <div className="flex-1">
+              <p className="text-sm text-gray-500">Company Size</p>
+              {editMode ? (
+                <input
+                  className="w-full p-2 border rounded-lg"
+                  value={draft.companySize ?? ""}
+                  onChange={(e) => onChange("companySize", e.target.value)}
+                />
+              ) : (
+                <p className="font-medium text-gray-900">{profile.companySize || "—"}</p>
+              )}
+            </div>
+          </div>
+
+          {/* Member since */}
+          <div className="flex items-center gap-3">
+            <span className="text-gray-500">📅</span>
+            <div className="flex-1">
+              <p className="text-sm text-gray-500">Member Since</p>
+              {editMode ? (
+                <input
+                  className="w-full p-2 border rounded-lg"
+                  value={draft.joinDate ?? ""}
+                  onChange={(e) => onChange("joinDate", e.target.value)}
+                  placeholder="January 2024"
+                />
+              ) : (
+                <p className="font-medium text-gray-900">{profile.joinDate || "—"}</p>
+              )}
+            </div>
+          </div>
+
+          {/* Response time */}
+          <div className="flex items-center gap-3">
+            <span className="text-gray-500">⏱️</span>
+            <div className="flex-1">
+              <p className="text-sm text-gray-500">Avg Response Time</p>
+              {editMode ? (
+                <input
+                  className="w-full p-2 border rounded-lg"
+                  value={draft.responseTime ?? ""}
+                  onChange={(e) => onChange("responseTime", e.target.value)}
+                  placeholder="e.g., 4 hours"
+                />
+              ) : (
+                <p className="font-medium text-gray-900">{profile.responseTime || "—"}</p>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+});
+
+/* --------------------------- Page component --------------------------- */
+
+const emptyProfile = {
+  companyName: "",
+  industryType: "",
+  location: "",
+  joinDate: "",
+  website: "",
+  companySize: "",
+  profileImage: "",
+  rating: 0,
+  totalReviews: 0,
+  projectsPosted: 0,
+  totalSpent: "₹0",
+  hiredStudents: 0,
+  responseTime: "",
+  description: "",
+  postedProjects: [],
+  hiredHistory: [],
+  reviews: [],
+  stats: [],
+};
+
+export default function ClientProfile() {
+  const { token } = useAuth();
+  const [profile, setProfile] = useState(emptyProfile);
+  const [draft, setDraft] = useState(emptyProfile);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState("overview");
-  const [isEditing, setIsEditing] = useState(false);
 
-  // Mock client data
-  const clientData = {
-    companyName: "TechCorp India",
-    industryType: "Technology Services",
-    location: "Bangalore, Karnataka",
-    joinDate: "January 2024",
-    website: "www.techcorp.in",
-    companySize: "10-50 employees",
-    profileImage: null,
-    rating: 4.7,
-    totalReviews: 9,
-    projectsPosted: 12,
-    totalSpent: "₹28,500",
-    hiredStudents: 15,
-    responseTime: "4 hours",
-    description: "TechCorp is a growing technology services company based in Bangalore. We specialize in web development, mobile applications, and digital marketing solutions for small to medium businesses across India. We believe in giving opportunities to talented students and helping them grow their careers.",
-    
-    postedProjects: [
-      {
-        id: 1,
-        title: "WordPress Blog Setup",
-        budget: "3,500",
-        status: "open",
-        deadline: "Dec 20, 2024",
-        description: "Need a student to help set up a WordPress blog with custom theme and basic SEO optimization.",
-        skills: ["WordPress", "SEO", "Content Management"],
-        applications: 12,
-        posted_date: "3 days ago"
-      },
-      {
-        id: 2,
-        title: "Social Media Content Creation",
-        budget: "2,800",
-        status: "completed",
-        deadline: "Dec 15, 2024",
-        student: "Rahul Kumar",
-        description: "Creating Instagram posts and stories for our local business. Need creative and engaging content.",
-        skills: ["Graphic Design", "Social Media", "Canva"],
-        posted_date: "1 week ago"
-      },
-      {
-        id: 3,
-        title: "Basic Data Entry Work",
-        budget: "1,500",
-        status: "in_progress",
-        deadline: "Dec 12, 2024",
-        student: "Priya Sharma",
-        description: "Simple data entry task from PDF to Excel. Perfect for students looking for easy work.",
-        skills: ["Data Entry", "Excel", "Attention to Detail"],
-        posted_date: "2 days ago"
+  const [editMode, setEditMode] = useState({ header: false, about: false, details: false });
+
+  const canSave = useMemo(
+    () => !saving && (editMode.header || editMode.about || editMode.details),
+    [saving, editMode]
+  );
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const res = await api.get("/profile");
+        if (res.data?.success) {
+          const data = { ...emptyProfile, ...(res.data?.data || {}) };
+          setProfile(data);
+          setDraft(data);
+        }
+      } catch (err) {
+        console.error("load profile:", err);
+      } finally {
+        setLoading(false);
       }
-    ],
+    };
+    load();
+  }, [token]);
 
-    hiredHistory: [
-      {
-        id: 1,
-        studentName: "Priya Sharma",
-        project: "Website Development",
-        rating: 5,
-        amount: "₹4,200",
-        completedDate: "Nov 2024",
-        feedback: "Excellent work! Very professional and delivered on time."
-      },
-      {
-        id: 2,
-        studentName: "Rahul Kumar",
-        project: "Logo Design",
-        rating: 4,
-        amount: "₹2,500",
-        completedDate: "Oct 2024",
-        feedback: "Good design skills. Communication could be better."
-      },
-      {
-        id: 3,
-        studentName: "Sneha Patel",
-        project: "Content Writing",
-        rating: 5,
-        amount: "₹1,800",
-        completedDate: "Oct 2024",
-        feedback: "Amazing writing skills! Very creative and original content."
+  // helpers
+  const startEdit = (section) => {
+    setDraft(profile);
+    setEditMode((m) => ({ ...m, [section]: true }));
+  };
+  const cancelEdit = (section) => {
+    setDraft(profile);
+    setEditMode((m) => ({ ...m, [section]: false }));
+  };
+  const onChange = (name, value) => setDraft((d) => ({ ...d, [name]: value }));
+
+  const saveSection = async (section) => {
+    if (saving) return;
+    setSaving(true);
+
+    let payload = {};
+    if (section === "about") {
+      payload = pickDefined({ description: draft.description });
+    } else if (section === "details") {
+      payload = pickDefined({
+        industryType: draft.industryType,
+        location: draft.location,
+        website: draft.website,
+        companySize: draft.companySize,
+        joinDate: draft.joinDate,
+        responseTime: draft.responseTime,
+      });
+    } else if (section === "header") {
+      payload = pickDefined({
+        companyName: draft.companyName,
+        industryType: draft.industryType,
+      });
+    }
+
+    try {
+      // console.log("PUT /profile payload:", payload);
+      const res = await api.put("/profile", payload);
+      // console.log("PUT /profile response:", res.status, res.data);
+      if (res.data?.success) {
+        const data = { ...emptyProfile, ...(res.data?.data || {}) };
+        setProfile(data);
+        setDraft(data);
+        setEditMode((m) => ({ ...m, [section]: false }));
+      } else {
+        alert(res.data?.error || "Failed to save");
       }
-    ],
-
-    reviews: [
-      {
-        id: 1,
-        studentName: "Priya Sharma",
-        rating: 5,
-        comment: "Great client! Clear requirements and prompt payments. Highly recommend working with TechCorp.",
-        project: "Website Development",
-        date: "Nov 2024"
-      },
-      {
-        id: 2,
-        studentName: "Rahul Kumar",
-        rating: 4,
-        comment: "Good experience. Client was responsive and the project scope was well defined.",
-        project: "Logo Design",
-        date: "Oct 2024"
-      }
-    ],
-
-    stats: [
-      { category: "Web Development", projects: 5, avgBudget: "₹4,200" },
-      { category: "Graphic Design", projects: 3, avgBudget: "₹2,500" },
-      { category: "Content Writing", projects: 2, avgBudget: "₹1,800" },
-      { category: "Data Entry", projects: 2, avgBudget: "₹1,500" }
-    ]
+    } catch (err) {
+      console.error("save profile error:", err?.response?.status, err?.response?.data || err);
+      alert(err?.response?.data?.error || "Failed to save. See console.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const tabs = [
     { id: "overview", label: "Overview", icon: "🏢" },
     { id: "projects", label: "Posted Projects", icon: "📁" },
     { id: "hired", label: "Hired Students", icon: "👥" },
-    { id: "reviews", label: "Reviews", icon: "⭐" }
+    { id: "reviews", label: "Reviews", icon: "⭐" },
   ];
 
-  const renderStars = (rating) => {
-    return Array.from({ length: 5 }, (_, i) => (
-      <span key={i} className={i < rating ? "text-yellow-400" : "text-gray-300"}>
-        ⭐
-      </span>
-    ));
-  };
-
-  const renderOverview = () => (
-    <div className="space-y-6">
-      {/* Company Description */}
-      <div className="bg-white p-6 rounded-xl shadow-sm border">
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-semibold text-gray-900">About Company</h3>
-          <button
-            onClick={() => setIsEditing(!isEditing)}
-            className="text-indigo-600 hover:text-indigo-700 text-sm font-medium"
-          >
-            {isEditing ? "Save" : "Edit"}
-          </button>
-        </div>
-        {isEditing ? (
-          <textarea
-            className="w-full p-3 border rounded-lg resize-none"
-            rows="4"
-            defaultValue={clientData.description}
-          />
-        ) : (
-          <p className="text-gray-600 leading-relaxed">{clientData.description}</p>
-        )}
-      </div>
-
-      {/* Company Details */}
-      <div className="bg-white p-6 rounded-xl shadow-sm border">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Company Details</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-3">
-            <div className="flex items-center gap-3">
-              <span className="text-gray-500">🏢</span>
-              <div>
-                <p className="text-sm text-gray-500">Industry</p>
-                <p className="font-medium text-gray-900">{clientData.industryType}</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <span className="text-gray-500">📍</span>
-              <div>
-                <p className="text-sm text-gray-500">Location</p>
-                <p className="font-medium text-gray-900">{clientData.location}</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <span className="text-gray-500">🌐</span>
-              <div>
-                <p className="text-sm text-gray-500">Website</p>
-                <a href={`https://${clientData.website}`} className="font-medium text-indigo-600 hover:text-indigo-700">
-                  {clientData.website}
-                </a>
-              </div>
-            </div>
+  const HiringStatsCard = () => (
+    <div className="bg-white p-6 rounded-xl shadow-sm border">
+      <h3 className="text-lg font-semibold text-gray-900 mb-4">Hiring Statistics</h3>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {(profile.stats || []).map((stat, i) => (
+          <div key={i} className="text-center p-4 bg-gray-50 rounded-lg">
+            <div className="text-lg font-bold text-gray-900">{stat.projects}</div>
+            <div className="text-sm text-gray-600 mb-1">{stat.category}</div>
+            <div className="text-xs text-gray-500">Avg: {stat.avgBudget}</div>
           </div>
-          <div className="space-y-3">
-            <div className="flex items-center gap-3">
-              <span className="text-gray-500">👥</span>
-              <div>
-                <p className="text-sm text-gray-500">Company Size</p>
-                <p className="font-medium text-gray-900">{clientData.companySize}</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <span className="text-gray-500">📅</span>
-              <div>
-                <p className="text-sm text-gray-500">Member Since</p>
-                <p className="font-medium text-gray-900">{clientData.joinDate}</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <span className="text-gray-500">⏱️</span>
-              <div>
-                <p className="text-sm text-gray-500">Avg Response Time</p>
-                <p className="font-medium text-gray-900">{clientData.responseTime}</p>
-              </div>
-            </div>
-          </div>
-        </div>
+        ))}
       </div>
+    </div>
+  );
 
-      {/* Hiring Stats */}
-      <div className="bg-white p-6 rounded-xl shadow-sm border">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Hiring Statistics</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {clientData.stats.map((stat, index) => (
-            <div key={index} className="text-center p-4 bg-gray-50 rounded-lg">
-              <div className="text-lg font-bold text-gray-900">{stat.projects}</div>
-              <div className="text-sm text-gray-600 mb-1">{stat.category}</div>
-              <div className="text-xs text-gray-500">Avg: {stat.avgBudget}</div>
-            </div>
-          ))}
-        </div>
+  const QuickStats = () => (
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="bg-white p-4 rounded-xl shadow-sm border text-center">
+        <div className="text-2xl font-bold text-gray-900">{profile.projectsPosted}</div>
+        <div className="text-sm text-gray-600">Projects Posted</div>
       </div>
-
-      {/* Quick Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-white p-4 rounded-xl shadow-sm border text-center">
-          <div className="text-2xl font-bold text-gray-900">{clientData.projectsPosted}</div>
-          <div className="text-sm text-gray-600">Projects Posted</div>
-        </div>
-        <div className="bg-white p-4 rounded-xl shadow-sm border text-center">
-          <div className="text-2xl font-bold text-gray-900">{clientData.hiredStudents}</div>
-          <div className="text-sm text-gray-600">Students Hired</div>
-        </div>
-        <div className="bg-white p-4 rounded-xl shadow-sm border text-center">
-          <div className="text-2xl font-bold text-gray-900">{clientData.totalSpent}</div>
-          <div className="text-sm text-gray-600">Total Spent</div>
-        </div>
-        <div className="bg-white p-4 rounded-xl shadow-sm border text-center">
-          <div className="text-2xl font-bold text-gray-900">{clientData.rating}</div>
-          <div className="text-sm text-gray-600">Average Rating</div>
-        </div>
+      <div className="bg-white p-4 rounded-xl shadow-sm border text-center">
+        <div className="text-2xl font-bold text-gray-900">{profile.hiredStudents}</div>
+        <div className="text-sm text-gray-600">Students Hired</div>
+      </div>
+      <div className="bg-white p-4 rounded-xl shadow-sm border text-center">
+        <div className="text-2xl font-bold text-gray-900">{profile.totalSpent}</div>
+        <div className="text-sm text-gray-600">Total Spent</div>
+      </div>
+      <div className="bg-white p-4 rounded-xl shadow-sm border text-center">
+        <div className="text-2xl font-bold text-gray-900">{profile.rating}</div>
+        <div className="text-sm text-gray-600">Average Rating</div>
       </div>
     </div>
   );
@@ -250,14 +485,11 @@ const ClientProfile = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h3 className="text-lg font-semibold text-gray-900">Posted Projects</h3>
-        <button className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">
-          Post New Project
-        </button>
+        <button className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">Post New Project</button>
       </div>
-      
       <div className="space-y-4">
-        {clientData.postedProjects.map((project) => (
-          <ProjectCard key={project.id} project={project} isClientView={true} />
+        {(profile.postedProjects || []).map((p) => (
+          <ProjectCard key={p.id || p._id} project={p} isClientView />
         ))}
       </div>
     </div>
@@ -267,26 +499,28 @@ const ClientProfile = () => {
     <div className="bg-white p-6 rounded-xl shadow-sm border">
       <h3 className="text-lg font-semibold text-gray-900 mb-6">Hired Students History</h3>
       <div className="space-y-6">
-        {clientData.hiredHistory.map((hire) => (
-          <div key={hire.id} className="border-b pb-6 last:border-b-0">
+        {(profile.hiredHistory || []).map((h) => (
+          <div key={h.id || h._id} className="border-b pb-6 last:border-b-0">
             <div className="flex items-start justify-between mb-3">
               <div className="flex items-start gap-4">
                 <div className="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center">
                   <span className="text-indigo-600 font-medium">
-                    {hire.studentName.split(' ').map(n => n[0]).join('')}
+                    {h.studentName?.split(" ").map((n) => n[0]).join("")}
                   </span>
                 </div>
                 <div>
-                  <h4 className="font-medium text-gray-900">{hire.studentName}</h4>
-                  <p className="text-sm text-gray-500">{hire.project} • {hire.completedDate}</p>
-                  <p className="text-sm font-medium text-green-600 mt-1">{hire.amount}</p>
+                  <h4 className="font-medium text-gray-900">{h.studentName}</h4>
+                  <p className="text-sm text-gray-500">
+                    {h.project} • {h.completedDate}
+                  </p>
+                  <p className="text-sm font-medium text-green-600 mt-1">{h.amount}</p>
                 </div>
               </div>
               <div className="flex">
-                {renderStars(hire.rating)}
+                <Stars value={h.rating || 0} />
               </div>
             </div>
-            <p className="text-gray-600 text-sm ml-16">{hire.feedback}</p>
+            <p className="text-gray-600 text-sm ml-16">{h.feedback}</p>
           </div>
         ))}
       </div>
@@ -297,76 +531,49 @@ const ClientProfile = () => {
     <div className="bg-white p-6 rounded-xl shadow-sm border">
       <h3 className="text-lg font-semibold text-gray-900 mb-6">Student Reviews</h3>
       <div className="space-y-6">
-        {clientData.reviews.map((review) => (
-          <div key={review.id} className="border-b pb-6 last:border-b-0">
+        {(profile.reviews || []).map((r) => (
+          <div key={r.id || r._id} className="border-b pb-6 last:border-b-0">
             <div className="flex items-start justify-between mb-3">
               <div>
-                <h4 className="font-medium text-gray-900">{review.studentName}</h4>
-                <p className="text-sm text-gray-500">{review.project} • {review.date}</p>
+                <h4 className="font-medium text-gray-900">{r.studentName}</h4>
+                <p className="text-sm text-gray-500">
+                  {r.project} • {r.date}
+                </p>
               </div>
               <div className="flex">
-                {renderStars(review.rating)}
+                <Stars value={r.rating || 0} />
               </div>
             </div>
-            <p className="text-gray-600">{review.comment}</p>
+            <p className="text-gray-600">{r.comment}</p>
           </div>
         ))}
       </div>
     </div>
   );
 
+  if (loading) {
+    return (
+      <DashboardLayout userType="client">
+        <div className="p-6">Loading profile…</div>
+      </DashboardLayout>
+    );
+  }
+
   return (
     <DashboardLayout userType="client">
       <div className="space-y-6">
-        {/* Profile Header */}
-        <div className="bg-white p-6 rounded-xl shadow-sm border">
-          <div className="flex flex-col md:flex-row gap-6">
-            {/* Company Logo */}
-            <div className="flex-shrink-0">
-              <div className="w-24 h-24 bg-blue-600 rounded-full flex items-center justify-center">
-                <span className="text-white text-2xl font-bold">TC</span>
-              </div>
-            </div>
+        <HeaderCard
+          profile={profile}
+          draft={draft}
+          editMode={editMode.header}
+          canSave={canSave}
+          saving={saving}
+          onStartEdit={() => startEdit("header")}
+          onCancel={() => cancelEdit("header")}
+          onSave={() => saveSection("header")}
+          onChange={onChange}
+        />
 
-            {/* Company Info */}
-            <div className="flex-1">
-              <div className="flex flex-col md:flex-row md:items-start md:justify-between mb-4">
-                <div>
-                  <h1 className="text-2xl font-bold text-gray-900">{clientData.companyName}</h1>
-                  <p className="text-lg text-gray-600">{clientData.industryType}</p>
-                  <div className="flex items-center gap-4 mt-2 text-sm text-gray-500">
-                    <span>📍 {clientData.location}</span>
-                    <span>📅 Member since {clientData.joinDate}</span>
-                  </div>
-                </div>
-                <button className="mt-4 md:mt-0 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-                  Edit Profile
-                </button>
-              </div>
-
-              {/* Rating and Stats */}
-              <div className="flex flex-wrap items-center gap-6">
-                <div className="flex items-center gap-2">
-                  <div className="flex">
-                    {renderStars(Math.floor(clientData.rating))}
-                  </div>
-                  <span className="font-medium text-gray-900">{clientData.rating}</span>
-                  <span className="text-gray-500">({clientData.totalReviews} reviews)</span>
-                </div>
-                <div className="h-4 w-px bg-gray-300"></div>
-                <div className="text-sm text-gray-600">
-                  <span className="font-medium text-gray-900">{clientData.projectsPosted}</span> projects posted
-                </div>
-                <div className="h-4 w-px bg-gray-300"></div>
-                <div className="text-sm text-gray-600">
-                  <span className="font-medium text-gray-900">{clientData.hiredStudents}</span> students hired
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Tabs */}
         <div className="bg-white rounded-xl shadow-sm border">
           <div className="flex border-b">
             {tabs.map((tab) => (
@@ -374,9 +581,7 @@ const ClientProfile = () => {
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
                 className={`flex items-center gap-2 px-6 py-4 font-medium border-b-2 transition-colors ${
-                  activeTab === tab.id
-                    ? "border-blue-600 text-blue-600"
-                    : "border-transparent text-gray-600 hover:text-gray-900"
+                  activeTab === tab.id ? "border-blue-600 text-blue-600" : "border-transparent text-gray-600 hover:text-gray-900"
                 }`}
               >
                 <span>{tab.icon}</span>
@@ -386,7 +591,36 @@ const ClientProfile = () => {
           </div>
 
           <div className="p-6">
-            {activeTab === "overview" && renderOverview()}
+            {activeTab === "overview" && (
+              <>
+                <AboutCard
+                  profile={profile}
+                  draft={draft}
+                  editMode={editMode.about}
+                  canSave={canSave}
+                  saving={saving}
+                  onStartEdit={() => startEdit("about")}
+                  onCancel={() => cancelEdit("about")}
+                  onSave={() => saveSection("about")}
+                  onChange={onChange}
+                />
+
+                <DetailsCard
+                  profile={profile}
+                  draft={draft}
+                  editMode={editMode.details}
+                  canSave={canSave}
+                  saving={saving}
+                  onStartEdit={() => startEdit("details")}
+                  onCancel={() => cancelEdit("details")}
+                  onSave={() => saveSection("details")}
+                  onChange={onChange}
+                />
+
+                <HiringStatsCard />
+                <QuickStats />
+              </>
+            )}
             {activeTab === "projects" && renderProjects()}
             {activeTab === "hired" && renderHired()}
             {activeTab === "reviews" && renderReviews()}
@@ -395,6 +629,4 @@ const ClientProfile = () => {
       </div>
     </DashboardLayout>
   );
-};
-
-export default ClientProfile;
+}

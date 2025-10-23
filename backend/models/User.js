@@ -1,7 +1,6 @@
-// models/User.js - Keep it basic for authentication only
 const mongoose = require("mongoose");
 
-const userSchema = new mongoose.Schema(
+const UserSchema = new mongoose.Schema(
   {
     name: {
       type: String,
@@ -18,6 +17,7 @@ const userSchema = new mongoose.Schema(
     phone: {
       type: String,
       default: "",
+      trim: true,
     },
     password: {
       type: String,
@@ -33,4 +33,6 @@ const userSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-module.exports = mongoose.model("User", userSchema);
+// Prevent OverwriteModelError on dev reloads
+module.exports =
+  mongoose.models.User || mongoose.model("User", UserSchema);
