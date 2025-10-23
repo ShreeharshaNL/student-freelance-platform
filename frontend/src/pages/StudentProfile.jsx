@@ -29,11 +29,13 @@ const StudentProfile = () => {
       setLoading(true);
       const response = await profileAPI.getProfile();
       if (response.success) {
-        setStudentData(response.data.user);
+        // backend returns { success, role, data }
+        const profile = response.data;
+        setStudentData(profile);
         setEditData({
-          bio: response.data.user.bio || "",
-          title: response.data.user.title || "",
-          location: response.data.user.location || "",
+          bio: profile.bio || "",
+          title: profile.title || "",
+          location: profile.location || "",
         });
       }
     } catch (error) {
@@ -48,7 +50,8 @@ const StudentProfile = () => {
     try {
       const response = await profileAPI.updateProfile(editData);
       if (response.success) {
-        setStudentData(response.data.user);
+        const profile = response.data;
+        setStudentData(profile);
         setIsEditing(false);
         alert("Profile updated successfully!");
       }
