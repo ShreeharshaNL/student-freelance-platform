@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import DashboardLayout from "../components/DashboardLayout";
 import { projectsAPI } from "../utils/projectsAPI";
+import { messagesAPI } from "../utils/messagesAPI";
+import { useNavigate } from "react-router-dom";
 import { normalizeStatus, getStatusLabel, getStatusBadgeClass } from "../utils/status";
 import ReviewModal from "../components/ReviewModal";
 import { reviewsAPI } from "../utils/reviewsAPI";
@@ -8,6 +10,7 @@ import SubmitProjectModal from "../components/SubmitProjectModal";
 import { submissionsAPI } from "../utils/submissionsAPI";
 
 const StudentActiveProjects = () => {
+  const navigate = useNavigate();
   const [activeFilter, setActiveFilter] = useState("all");
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -35,33 +38,53 @@ const StudentActiveProjects = () => {
           return;
         }
 
-        const data = res.data.data || [];
+        console.log('Raw API Response:', res.data);
+        const applications = res.data.data || [];
+        console.log('Applications:', applications);
 
-        // Build project list for active projects (accepted or project in-progress)
-        const active = data
-          .map(item => {
-            const proj = item.project || {};
+        // Build project list for active projects (accepted or in-progress)
+        console.log('Building active projects list from applications:', applications);
+        const active = applications
+          .filter(app => {
+            console.log('Checking application:', {
+              id: app._id,
+              projectId: app.project?._id,
+              projectTitle: app.project?.title,
+              status: app.status,
+              progress: app.progress
+            });
+            const appStatus = normalizeStatus(app.status);
+            console.log('Application status:', { 
+              raw: app.status, 
+              normalized: appStatus,
+              isActive: appStatus === 'in_progress'
+            });
+            return appStatus === 'in_progress';
+          })
+          .map(app => {
+            console.log('Processing active application:', app);
+            const proj = app.project || {};
+            console.log('Processing project data:', proj);
             return {
               id: proj._id,
+              _id: proj._id,
               title: proj.title,
-              client: proj.client?.name || "Client",
-              clientId: proj.client?._id,
+              client: proj.user || proj.client || null, // Store the full client object
+              clientId: proj.user?._id || proj.client?._id, // Store client ID separately
               budget: proj.budget || 0,
-              status: proj.status || item.status || "in_progress",
-              progress: item.progress || 0,
+              status: app.status,
+              progress: app.progress || 0,
               deadline: proj.deadline,
-              startDate: item.appliedAt || null,
+              startDate: app.appliedAt || app.createdAt || null,
               description: proj.description || "",
               milestones: [],
               messages: 0,
-              lastUpdate: "",
-              applicationStatus: item.status
+              lastUpdate: app.updatedAt || ""
             };
-          })
-          .filter(p => {
-            const status = normalizeStatus(p.status);
-            return ['in_progress', 'under_review', 'completed'].includes(status);
           });
+          
+        console.log('Processed active projects:', active);
+        setProjects(active);
 
         setProjects(active);
       } catch (err) {
@@ -84,7 +107,11 @@ const StudentActiveProjects = () => {
 
   const filteredProjects = activeFilter === "all"
     ? projects
-    : projects.filter(project => normalizeStatus(project.status) === activeFilter);
+    : projects.filter(project => {
+        const normalized = normalizeStatus(project.status);
+        console.log('Filtering project:', { status: project.status, normalized, activeFilter });
+        return normalized === activeFilter;
+      });
 
   const getStatusBadge = (status) => {
     const cls = getStatusBadgeClass(status);
@@ -215,10 +242,10 @@ const StudentActiveProjects = () => {
                         <div>
                           <h3 className="text-xl font-semibold text-gray-900 mb-1">{project.title}</h3>
                           <div className="flex items-center gap-4 text-sm text-gray-500 mb-2">
-                            <span>👤 {project.client}</span>
-                            <span>💰 {project.budget}</span>
-                            <span>📅 Due: {project.deadline}</span>
-                            <span>📝 {project.messages} messages</span>
+                     <span>👤 {project.client && project.client.name ? project.client.name : 'Client Not Specified'}</span>
+                     <span>💰 ₹{Number(project.budget).toLocaleString()}</span>
+                     <span>📅 Due: {project.deadline ? new Date(project.deadline).toLocaleDateString() : 'N/A'}</span>
+                     <span>📝 {project.messages} messages</span>
                           </div>
                           <p className="text-gray-600 text-sm">{project.description}</p>
                         </div>
@@ -241,18 +268,58 @@ const StudentActiveProjects = () => {
                           ></div>
                         </div>
                         <div className="flex justify-between text-xs text-gray-500 mt-1">
-                          <span>Started {project.startDate}</span>
+                          <span>Started {project.startDate ? new Date(project.startDate).toLocaleString() : 'N/A'}</span>
                           <span>{getDaysLeft(project.deadline)} days left</span>
+                          <span className="text-xs text-gray-500">{project.lastUpdate ? `Updated ${new Date(project.lastUpdate).toLocaleString()}` : ''}</span>
                         </div>
                       </div>
                     </div>
 
                     {/* Actions */}
                     <div className="flex flex-col sm:flex-row lg:flex-col gap-2 lg:w-48">
-                      <button className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm">
+                      <button
+                        className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm"
+                        onClick={() => navigate(`/projects/${project.id}`)}
+                      >
                         View Details
                       </button>
-                      <button className="px-4 py-2 text-indigo-600 border border-indigo-600 rounded-lg hover:bg-indigo-50 transition-colors text-sm">
+                      <button
+                        className="px-4 py-2 text-indigo-600 border border-indigo-600 rounded-lg hover:bg-indigo-50 transition-colors text-sm"
+                        onClick={async () => {
+                          try {
+                            // Extract client ID from project data
+                            const clientId = project.project?.user?._id ||  // Try project.user._id first
+                                          project.client?._id ||           // Then try client._id
+                                          project.client?.id ||            // Then try client.id
+                                          project.clientId;                // Finally try clientId directly
+                            
+                            console.log('Project data:', project);
+                            console.log('Attempting to message client:', { clientId });
+                            
+                            if (!clientId) {
+                              console.error('No client ID found in project:', project);
+                              alert('Could not find client information');
+                              return;
+                            }
+                            
+                            const response = await messagesAPI.createOrGetConversation(clientId);
+                            console.log('Conversation response:', response);
+                            
+                            if (response?.data?.conversation?._id) {
+                              // Navigate to messages page with conversation ID
+                              navigate('/student/messages', { 
+                                state: { selectedConversation: response.data.conversation._id }
+                              });
+                            } else {
+                              console.error('Invalid conversation response:', response);
+                              alert('Could not open conversation');
+                            }
+                          } catch (err) {
+                            console.error('Failed to open conversation:', err);
+                            alert('Failed to open conversation: ' + (err.response?.data?.error || err.message));
+                          }
+                        }}
+                      >
                         Message Client
                       </button>
                       {normalizeStatus(project.status) === "in_progress" && (

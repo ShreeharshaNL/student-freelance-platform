@@ -30,6 +30,12 @@ const applicationSchema = new mongoose.Schema({
         type: String,
         enum: ['pending', 'accepted', 'rejected', 'in_progress', 'completed'],
         default: 'pending'
+    },
+    progress: {
+        type: Number,
+        default: 0,
+        min: 0,
+        max: 100
     }
 }, {
     timestamps: true

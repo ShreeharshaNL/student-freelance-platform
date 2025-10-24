@@ -1,3 +1,54 @@
+// @desc    Student updates progress on a project
+// @route   PUT /api/projects/:id/progress
+// @access  Private (Student only)
+const updateProjectProgress = async (req, res) => {
+    try {
+        if (req.user.role !== 'student') {
+            return res.status(403).json({
+                success: false,
+                error: 'Only students can update progress'
+            });
+        }
+
+        const { progress } = req.body;
+        if (typeof progress !== 'number' || progress < 0 || progress > 100) {
+            return res.status(400).json({
+                success: false,
+                error: 'Progress must be a number between 0 and 100'
+            });
+        }
+
+        console.log('Update progress request:', { projectId: req.params.id, userId: req.user.id, progress });
+
+        // Find the student's application for this project using Application model
+        const application = await Application.findOne({
+            project: req.params.id,
+            student: req.user.id
+        });
+
+        if (!application) {
+            console.log('Application not found for student:', { projectId: req.params.id, userId: req.user.id });
+            return res.status(404).json({
+                success: false,
+                error: 'Application not found for this student'
+            });
+        }
+
+        application.progress = progress;
+        await application.save();
+
+        res.json({
+            success: true,
+            data: { progress }
+        });
+    } catch (error) {
+        console.error('Update project progress error:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Server error'
+        });
+    }
+};
 const Project = require('../models/projectModel');
 const Application = require('../models/Application');
 const { calculateProjectFees } = require('../utils/projectFees');
@@ -360,6 +411,11 @@ const applyToProject = async (req, res) => {
 // @access  Private (Students only)
 const getMyApplications = async (req, res) => {
     try {
+        console.log('getMyApplications called for user:', {
+            userId: req.user.id,
+            role: req.user.role
+        });
+
         if (req.user.role !== 'student') {
             return res.status(403).json({
                 success: false,
@@ -367,41 +423,60 @@ const getMyApplications = async (req, res) => {
             });
         }
 
-        // Find all projects where the student has applied
-        const projects = await Project.find({
-            'applications.student': req.user.id
-        })
-        .populate('user', 'name email')
-        .select('+applications');
+        // Use the Application model directly instead of embedded applications
+        const applications = await Application.find({ student: req.user.id })
+            .populate({
+                path: 'project',
+                select: 'title budget deadline status description',
+                populate: {
+                    path: 'user',
+                    select: 'name email'
+                }
+            });
 
-        // Format the response to only include relevant application data
-        const applications = projects.map(project => {
-            const application = project.applications.find(
-                app => app.student.toString() === req.user.id
-            );
-            
-            return {
-                _id: application._id,
-                project: {
-                    _id: project._id,
-                    title: project.title,
-                    budget: project.budget,
-                    deadline: project.deadline,
-                    status: project.status,
-                    client: project.user
-                },
-                status: application.status,
-                proposedBudget: application.proposedBudget,
-                timeline: application.timeline,
-                coverLetter: application.coverLetter,
-                questions: application.questions,
-                appliedAt: application.createdAt
-            };
+        console.log('Found applications for student:', {
+            userId: req.user.id,
+            count: applications.length,
+            applications: applications.map(a => ({
+                id: a._id,
+                projectId: a.project?._id,
+                projectTitle: a.project?.title,
+                status: a.status,
+                progress: a.progress,
+                createdAt: a.createdAt
+            }))
+        });
+
+        // Format the response with all necessary fields
+        const formattedApplications = applications.map(app => ({
+            _id: app._id,
+            project: {
+                _id: app.project?._id,
+                title: app.project?.title,
+                budget: app.project?.budget,
+                deadline: app.project?.deadline,
+                status: app.project?.status,
+                description: app.project?.description,
+                client: app.project?.user
+            },
+            status: app.status || 'pending',
+            proposedBudget: app.proposedBudget,
+            timeline: app.timeline,
+            coverLetter: app.coverLetter,
+            progress: app.progress || 0,
+            questions: app.questions,
+            appliedAt: app.createdAt,
+            updatedAt: app.updatedAt
+        }));
+
+        console.log('Sending formatted applications:', {
+            count: formattedApplications.length,
+            statuses: formattedApplications.map(a => a.status)
         });
 
         res.json({
             success: true,
-            data: applications
+            data: formattedApplications
         });
     } catch (error) {
         console.error('Get my applications error:', error);
@@ -656,5 +731,6 @@ module.exports = {
     applyToProject,
     getMyApplications,
     updateApplicationStatus,
+    updateProjectProgress
     updateProject
 };

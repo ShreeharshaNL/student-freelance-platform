@@ -106,6 +106,10 @@ const projectSchema = new mongoose.Schema({
             fileName: String,
             fileUrl: String
         }],
+        progress: {
+            type: Number,
+            default: 0
+        },
         completionDate: Date
     }]
 }, {

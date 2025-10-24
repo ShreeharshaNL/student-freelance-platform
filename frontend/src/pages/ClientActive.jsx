@@ -46,7 +46,8 @@ const ClientActive = () => {
               student: acceptedApp.student,
               applicationId: acceptedApp._id,
               startedAt: acceptedApp.createdAt,
-              projectStatus: project.status
+              projectStatus: project.status,
+              progress: typeof acceptedApp.progress === 'number' ? acceptedApp.progress : 0
             };
           })
           .filter(Boolean);
@@ -155,7 +156,21 @@ const ClientActive = () => {
                       <h3 className="text-lg font-semibold text-gray-900">{hire.student.name}</h3>
                       <p className="text-sm text-gray-600">{hire.student.location || 'Not specified'}</p>
                       <div className="text-sm text-gray-600 mt-2">
-                        <span className="font-medium">{hire.projectTitle}</span> • ₹{hire.budget}
+                        <span className="font-medium">{hire.projectTitle}</span>
+                        <span className="ml-2 font-medium">₹{Number(hire.budget).toLocaleString()}</span>
+                      </div>
+                      {/* Progress Bar */}
+                      <div className="mt-2">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-xs text-gray-500">Progress</span>
+                          <span className="text-xs text-gray-700 font-semibold">{hire.progress}%</span>
+                        </div>
+                        <div className="w-40 bg-gray-200 rounded-full h-2">
+                          <div
+                            className="h-2 rounded-full bg-green-500 transition-all duration-300"
+                            style={{ width: `${hire.progress}%` }}
+                          ></div>
+                        </div>
                       </div>
                     </div>
                   </div>

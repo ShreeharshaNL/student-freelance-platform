@@ -38,11 +38,23 @@ export const projectsAPI = {
 
     // Get student's applications
     getMyApplications: async () => {
-        return API.get('/applications/me');
+        try {
+            const response = await API.get('/projects/my-applications');
+            console.log('API getMyApplications response:', response);
+            return response;
+        } catch (error) {
+            console.error('Error in getMyApplications:', error);
+            throw error;
+        }
     },
 
     // Update application status (for client)
     updateApplicationStatus: async (projectId, applicationId, status) => {
         return API.put(`/projects/${projectId}/applications/${applicationId}`, { status });
+    },
+
+    // Update project progress (for student)
+    updateProjectProgress: async (projectId, progress) => {
+        return API.put(`/projects/${projectId}/progress`, { progress });
     }
 };
