@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import DashboardLayout from "../components/DashboardLayout";
 import { applicationsAPI } from "../utils/applicationsAPI";
+import { normalizeStatus, getStatusLabel, getStatusBadgeClass } from "../utils/status";
 
 const StudentApplications = () => {
   const [activeFilter, setActiveFilter] = useState("all");
@@ -17,6 +18,7 @@ const StudentApplications = () => {
         const response = await applicationsAPI.getMyApplications();
         const formattedApplications = response.data.data.map(app => ({
           id: app._id,
+          _id: app._id,
           projectTitle: app.project.title,
           client: app.project.user.name,
           appliedDate: new Date(app.createdAt).toLocaleDateString(),
@@ -39,49 +41,34 @@ const StudentApplications = () => {
     };    fetchApplications();
   }, []);
 
-  // Application statuses and their labels
-  const statusLabels = {
-    pending: "Pending Review",
-    accepted: "Accepted",
-    rejected: "Rejected",
-    in_progress: "In Progress"
-  };
+  // Map backend statuses to student-facing labels
+  // Backend statuses: 'pending' (client marked for review), 'accepted' (client accepted), 'rejected', 'in_progress'
+  // Student view: pending -> Under Review, accepted/in_progress -> In Progress
 
   const filters = [
     { id: "all", label: "All Applications", count: applications?.length || 0 },
-    { id: "pending", label: "Pending Review", count: applications?.filter(a => a.status === "pending")?.length || 0 },
-    { id: "accepted", label: "Accepted", count: applications?.filter(a => a.status === "accepted")?.length || 0 },
+    { id: "under_review", label: "Under Review", count: applications?.filter(a => a.status === "pending")?.length || 0 },
+    { id: "in_progress", label: "In Progress", count: applications?.filter(a => a.status === "accepted" || a.status === "in_progress")?.length || 0 },
     { id: "rejected", label: "Rejected", count: applications?.filter(a => a.status === "rejected")?.length || 0 }
   ];
 
-  const filteredApplications = activeFilter === "all" 
-    ? applications || []
-    : (applications || []).filter(app => app.status === activeFilter);
+  const filteredApplications = (applications || []).filter(app => {
+    if (activeFilter === "all") return true;
+    if (activeFilter === "under_review") return app.status === "pending";
+    if (activeFilter === "in_progress") return app.status === "accepted" || app.status === "in_progress";
+    return app.status === activeFilter;
+  });
 
   const getStatusBadge = (status) => {
-    const statusStyles = {
-      pending: "bg-yellow-100 text-yellow-800",
-      accepted: "bg-green-100 text-green-800",
-      rejected: "bg-red-100 text-red-800"
-    };
-
-    const statusLabels = {
-      pending: "Pending Review",
-      accepted: "Accepted",
-      rejected: "Rejected"
-    };
-    
-    return (
-      <span className={`px-3 py-1 rounded-full text-sm font-medium ${statusStyles[status]}`}>
-        {statusLabels[status]}
-      </span>
-    );
+    const cls = getStatusBadgeClass(status);
+    const label = getStatusLabel(status);
+    return <span className={`px-3 py-1 rounded-full text-sm font-medium ${cls}`}>{label}</span>;
   };
 
   const getStatusIcon = (status) => {
     const icons = {
       pending: "⏳",
-      accepted: "✅",
+      accepted: "🔄",
       rejected: "❌",
       "in_progress": "🔄"
     };
@@ -149,9 +136,9 @@ const StudentApplications = () => {
               </div>
               <div>
                 <div className="text-2xl font-bold text-gray-900">
-                  {applications.filter(a => a.status === "accepted").length}
+                  {applications.filter(a => a.status === "accepted" || a.status === "in_progress").length}
                 </div>
-                <div className="text-sm text-gray-600">Accepted</div>
+                <div className="text-sm text-gray-600">In Progress</div>
               </div>
             </div>
           </div>
@@ -164,20 +151,27 @@ const StudentApplications = () => {
                 <div className="text-2xl font-bold text-gray-900">
                   {applications.filter(a => a.status === "pending").length}
                 </div>
-                <div className="text-sm text-gray-600">Pending</div>
+                <div className="text-sm text-gray-600">Under Review</div>
               </div>
             </div>
           </div>
           <div className="bg-white p-4 rounded-xl shadow-sm border">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-indigo-100 rounded-lg">
-                <span className="text-xl">📊</span>
+                <span className="text-xl">�</span>
               </div>
               <div>
                 <div className="text-2xl font-bold text-gray-900">
-                  {Math.round((applications.filter(a => a.status === "accepted").length / applications.length) * 100)}%
+                  {(() => {
+                    const total = applications.reduce((sum, a) => {
+                      const isInProgress = (a.status === "accepted" || a.status === "in_progress");
+                      const value = a.project && a.project.budget ? Number(a.project.budget) : 0;
+                      return sum + (isInProgress ? value : 0);
+                    }, 0);
+                    return `₹${total}`;
+                  })()}
                 </div>
-                <div className="text-sm text-gray-600">Success Rate</div>
+                <div className="text-sm text-gray-600">Total Value (In Progress)</div>
               </div>
             </div>
           </div>

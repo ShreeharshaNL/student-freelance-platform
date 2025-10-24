@@ -512,9 +512,11 @@ const updateApplicationStatus = async (req, res) => {
             });
         }
 
+        const applicationId = req.params.id || req.params.applicationId;
+
         // Find the project containing this application
         const project = await Project.findOne({
-            'applications._id': req.params.id,
+            'applications._id': applicationId,
             user: req.user.id
         });
 
@@ -526,12 +528,12 @@ const updateApplicationStatus = async (req, res) => {
         }
 
         // Update the application status
-        project.applications.id(req.params.id).status = status;
+        project.applications.id(applicationId).status = status;
         await project.save();
 
         res.json({
             success: true,
-            data: project.applications.id(req.params.id)
+            data: project.applications.id(applicationId)
         });
     } catch (error) {
         console.error('Update application status error:', error);

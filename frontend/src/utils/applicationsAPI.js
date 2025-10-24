@@ -74,7 +74,8 @@ export const applicationsAPI = {
             if (!['accepted', 'rejected'].includes(status)) {
                 throw new Error('Invalid application status');
             }
-            const response = await API.put(`/projects/applications/${applicationId}/status`, { status });
+            // Backend expects PUT /api/applications/:applicationId with { status }
+            const response = await API.put(`/applications/${applicationId}`, { status });
             console.log('Update application status response:', response);
             return response;
         } catch (error) {

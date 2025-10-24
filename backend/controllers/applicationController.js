@@ -189,11 +189,11 @@ exports.getMyApplications = async (req, res) => {
 };
 
 // @desc    Delete an application
-// @route   DELETE /api/applications/:applicationId
+// @route   DELETE /api/applications/:applicationId  OR /api/applications/:id
 // @access  Private (Application owner only)
 exports.deleteApplication = async (req, res) => {
     try {
-        const { applicationId } = req.params;
+        const applicationId = req.params.applicationId || req.params.id;
 
         const application = await Application.findById(applicationId);
 
@@ -233,11 +233,11 @@ exports.deleteApplication = async (req, res) => {
 };
 
 // @desc    Update application status (accept/reject)
-// @route   PUT /api/applications/:applicationId
+// @route   PUT /api/applications/:applicationId  OR /api/applications/:id
 // @access  Private (Project owner only)
 exports.updateApplicationStatus = async (req, res) => {
     try {
-        const { applicationId } = req.params;
+        const applicationId = req.params.applicationId || req.params.id;
         const { status } = req.body;
 
         if (!['accepted', 'rejected'].includes(status)) {
@@ -270,13 +270,6 @@ exports.updateApplicationStatus = async (req, res) => {
             return res.status(403).json({
                 success: false,
                 error: 'Not authorized to update application status'
-            });
-        }
-
-        if (!application) {
-            return res.status(404).json({
-                success: false,
-                error: 'Application not found'
             });
         }
 

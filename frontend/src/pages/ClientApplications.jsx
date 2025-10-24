@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../components/DashboardLayout";
 import { applicationsAPI } from "../utils/applicationsAPI";
+import { getStatusLabel, getStatusBadgeClass } from "../utils/status";
 
 const ClientApplications = () => {
   const [selectedProject, setSelectedProject] = useState("all");
@@ -162,16 +163,11 @@ const ClientApplications = () => {
     : applications.filter(app => app.projectId === selectedProject);
 
   const getStatusBadge = (status) => {
-    const statusStyles = {
-      pending: "bg-yellow-100 text-yellow-800",
-      shortlisted: "bg-blue-100 text-blue-800",
-      accepted: "bg-green-100 text-green-800",
-      rejected: "bg-red-100 text-red-800"
-    };
-    
+    const cls = getStatusBadgeClass(status);
+    const label = getStatusLabel(status);
     return (
-      <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusStyles[status]}`}>
-        {status.charAt(0).toUpperCase() + status.slice(1)}
+      <span className={`px-2 py-1 rounded-full text-xs font-medium ${cls}`}>
+        {label}
       </span>
     );
   };
@@ -377,17 +373,7 @@ const ClientApplications = () => {
               </div>
             </div>
           </div>
-          <div className="bg-white p-4 rounded-xl shadow-sm border">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <span className="text-xl">🎯</span>
-              </div>
-              <div>
-                <div className="text-2xl font-bold text-gray-900">{applications.filter(a => a.status === 'shortlisted').length}</div>
-                <div className="text-sm text-gray-600">Shortlisted</div>
-              </div>
-            </div>
-          </div>
+          {/* Shortlisted card removed - feature not used */}
           <div className="bg-white p-4 rounded-xl shadow-sm border">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-green-100 rounded-lg">
