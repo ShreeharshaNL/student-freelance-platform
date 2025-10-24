@@ -12,6 +12,7 @@ const {
     getMyApplications,
     updateApplicationStatus,
     updateProjectProgress
+    updateProject
 } = require('../controllers/projectController');
 // Protected routes for project management
 router.post('/', protect, createProject); // Create project (clients only)
@@ -23,6 +24,7 @@ router.get('/my-applications', protect, getMyApplications); // Get student's app
 // Project-specific routes
 router.post('/:id/apply', protect, applyToProject); // Apply to a project
 router.put('/:id/progress', protect, updateProjectProgress); // Student updates progress
+router.put('/:id', protect, updateProject); // Update project (clients only)
 router.put('/applications/:id/status', protect, updateApplicationStatus); // Update application status
 
 // Public routes for project discovery

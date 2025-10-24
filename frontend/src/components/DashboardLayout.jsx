@@ -1,13 +1,30 @@
 //DashboardLayout.jsx
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { profileAPI } from "../utils/profileAPI";
 
 const DashboardLayout = ({ children, userType = "student" }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [profile, setProfile] = useState(null);
   const location = useLocation();
   const navigate = useNavigate();
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
+
+  useEffect(() => {
+    fetchProfile();
+  }, []);
+
+  const fetchProfile = async () => {
+    try {
+      const response = await profileAPI.getProfile();
+      if (response.success) {
+        setProfile(response.data);
+      }
+    } catch (err) {
+      console.error('Error fetching profile:', err);
+    }
+  };
 
   const studentNavItems = [
     { name: "Dashboard", href: "/student/dashboard", icon: "📊" },
@@ -48,7 +65,7 @@ const DashboardLayout = ({ children, userType = "student" }) => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
+    <div className="h-screen bg-gray-50 flex overflow-hidden">
       {/* Mobile sidebar overlay */}
       {sidebarOpen && (
         <div
@@ -101,9 +118,9 @@ const DashboardLayout = ({ children, userType = "student" }) => {
       </div>
 
       {/* Main content */}
-      <div className="flex-1 lg:ml-0">
+      <div className="flex-1 lg:ml-0 flex flex-col overflow-hidden">
         {/* Top header */}
-        <header className="bg-white shadow-sm border-b">
+        <header className="bg-white shadow-sm border-b flex-shrink-0">
           <div className="flex items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
             <button
               onClick={() => setSidebarOpen(true)}
@@ -115,27 +132,19 @@ const DashboardLayout = ({ children, userType = "student" }) => {
             </button>
 
             <div className="flex items-center space-x-4">
-              {/* Notifications */}
-              <button className="relative p-2 text-gray-600 hover:text-gray-900">
-                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-5-5-5 5h5zm0 0v-5a6 6 0 0 0-12 0v5" />
-                </svg>
-                <span className="absolute -top-1 -right-1 h-4 w-4 bg-red-500 text-white rounded-full text-xs flex items-center justify-center">
-                  3
-                </span>
-              </button>
-
               {/* Profile dropdown */}
               <div className="relative">
                 <button className="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-50">
                   <div className="h-8 w-8 bg-indigo-600 rounded-full flex items-center justify-center">
                     <span className="text-white text-sm font-medium">
-                      {userType === "student" ? "S" : "C"}
+                      {profile?.name ? profile.name.charAt(0).toUpperCase() : (userType === "student" ? "S" : "C")}
                     </span>
                   </div>
                   <div className="hidden sm:block text-left">
                     <p className="text-sm font-medium text-gray-900">
-                      {userType === "student" ? "Shreeharsha N L" : "TechCorp Inc."}
+                      {userType === "student" 
+                        ? (profile?.name || user?.name || "Student")
+                        : (profile?.companyName || user?.name || "Client")}
                     </p>
                     <p className="text-xs text-gray-500 capitalize">{userType}</p>
                   </div>
@@ -146,7 +155,7 @@ const DashboardLayout = ({ children, userType = "student" }) => {
         </header>
 
         {/* Page content */}
-        <main className="p-4 sm:p-6 lg:p-8">
+        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
           {children}
         </main>
       </div>

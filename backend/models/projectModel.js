@@ -35,7 +35,7 @@ const projectSchema = new mongoose.Schema({
     status: {
         type: String,
         required: true,
-        enum: ['open', 'in-progress', 'completed'],
+        enum: ['open', 'in-progress', 'under-review', 'completed'],
         default: 'open',
     },
     budget: {

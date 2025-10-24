@@ -23,6 +23,8 @@ const CLIENT_ALLOWED = new Set([
   "hiredHistory",
   "reviews",
   "stats",
+  "monthlySpent",
+  "avgRatingGiven",
 ]);
 
 const STUDENT_ALLOWED = new Set([
@@ -31,6 +33,10 @@ const STUDENT_ALLOWED = new Set([
   "location",
   "responseTime",
   "website",
+  "totalEarnings",
+  "monthlyEarnings",
+  "rating",
+  "completedProjects",
 ]);
 
 /* =========================================================

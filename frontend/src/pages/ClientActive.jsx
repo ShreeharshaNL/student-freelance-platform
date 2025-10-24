@@ -3,12 +3,26 @@ import DashboardLayout from '../components/DashboardLayout';
 import { applicationsAPI } from '../utils/applicationsAPI';
 import { useNavigate } from 'react-router-dom';
 import { normalizeStatus } from '../utils/status';
+import ReviewModal from '../components/ReviewModal';
+import ReviewSubmissionModal from '../components/ReviewSubmissionModal';
+import { submissionsAPI } from '../utils/submissionsAPI';
 
 const ClientActive = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activeHires, setActiveHires] = useState([]);
   const navigate = useNavigate();
+  const [reviewModal, setReviewModal] = useState({
+    isOpen: false,
+    projectId: null,
+    revieweeId: null,
+    revieweeName: "",
+  });
+  const [reviewSubmissionModal, setReviewSubmissionModal] = useState({
+    isOpen: false,
+    submission: null,
+  });
+  const [pendingSubmissions, setPendingSubmissions] = useState([]);
 
   useEffect(() => {
     const fetchActiveHires = async () => {
@@ -48,7 +62,20 @@ const ClientActive = () => {
     };
 
     fetchActiveHires();
+    fetchPendingSubmissions();
   }, []);
+
+  const fetchPendingSubmissions = async () => {
+    try {
+      const res = await submissionsAPI.getMySubmissions();
+      if (res.success) {
+        const pending = res.data.filter(s => s.status === "under_review");
+        setPendingSubmissions(pending);
+      }
+    } catch (err) {
+      console.error("Error fetching submissions:", err);
+    }
+  };
 
   if (loading) {
     return (
@@ -71,6 +98,38 @@ const ClientActive = () => {
   return (
     <DashboardLayout userType="client">
       <div className="space-y-6">
+        {pendingSubmissions.length > 0 && (
+          <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-lg">
+            <div className="flex items-start">
+              <span className="text-2xl mr-3">⏰</span>
+              <div className="flex-1">
+                <h3 className="font-semibold text-yellow-900">Pending Reviews</h3>
+                <p className="text-sm text-yellow-700 mt-1">
+                  You have {pendingSubmissions.length} submission(s) waiting for your review
+                </p>
+                <div className="mt-3 space-y-2">
+                  {pendingSubmissions.map((sub) => (
+                    <div key={sub._id} className="bg-white p-3 rounded border border-yellow-200">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="font-medium text-gray-900">{sub.title}</p>
+                          <p className="text-sm text-gray-600">{sub.project?.title}</p>
+                        </div>
+                        <button
+                          onClick={() => setReviewSubmissionModal({ isOpen: true, submission: sub })}
+                          className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 text-sm"
+                        >
+                          Review Now
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Active Hires</h1>
@@ -129,6 +188,19 @@ const ClientActive = () => {
                     >
                       View Project
                     </button>
+                    {normalizeStatus(hire.projectStatus) === "completed" && (
+                      <button
+                        onClick={() => setReviewModal({
+                          isOpen: true,
+                          projectId: hire.projectId,
+                          revieweeId: hire.student._id,
+                          revieweeName: hire.student.name,
+                        })}
+                        className="px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-colors text-sm"
+                      >
+                        ⭐ Leave Review
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
@@ -136,6 +208,28 @@ const ClientActive = () => {
           </div>
         )}
       </div>
+
+      <ReviewSubmissionModal
+        isOpen={reviewSubmissionModal.isOpen}
+        onClose={() => setReviewSubmissionModal({ isOpen: false, submission: null })}
+        submission={reviewSubmissionModal.submission}
+        onSuccess={() => {
+          alert("Review submitted!");
+          fetchPendingSubmissions();
+          window.location.reload();
+        }}
+      />
+
+      <ReviewModal
+        isOpen={reviewModal.isOpen}
+        onClose={() => setReviewModal({ isOpen: false, projectId: null, revieweeId: null, revieweeName: "" })}
+        projectId={reviewModal.projectId}
+        revieweeId={reviewModal.revieweeId}
+        revieweeName={reviewModal.revieweeName}
+        onSuccess={() => {
+          alert("Review submitted successfully!");
+        }}
+      />
     </DashboardLayout>
   );
 };

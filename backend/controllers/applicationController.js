@@ -281,7 +281,7 @@ exports.updateApplicationStatus = async (req, res) => {
             });
         }
 
-        // If accepting, update project status to in-progress
+        // If accepting, update project status to in-progress and application to in_progress
         if (status === 'accepted') {
             application.project.status = 'in-progress';
             await application.project.save();
@@ -295,9 +295,13 @@ exports.updateApplicationStatus = async (req, res) => {
                 },
                 { status: 'rejected' }
             );
+            
+            // Set the accepted application to in_progress
+            application.status = 'in_progress';
+        } else {
+            application.status = status;
         }
-
-        application.status = status;
+        
         await application.save();
 
         res.json({

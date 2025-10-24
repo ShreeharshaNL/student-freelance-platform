@@ -34,6 +34,10 @@ const ClientProfileSchema = new mongoose.Schema(
     hiredHistory: { type: Array, default: [] },
     reviews: { type: Array, default: [] },
     stats: { type: Array, default: [] },            // ⚠️ array, not object
+
+    // Dashboard Stats
+    monthlySpent: { type: Number, default: 0 },
+    avgRatingGiven: { type: Number, default: 0 },
   },
   { timestamps: true }
 );

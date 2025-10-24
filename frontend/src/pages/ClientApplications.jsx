@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import DashboardLayout from "../components/DashboardLayout";
 import { applicationsAPI } from "../utils/applicationsAPI";
 import { getStatusLabel, getStatusBadgeClass } from "../utils/status";
 
 const ClientApplications = () => {
+  const { projectId } = useParams();
   const [selectedProject, setSelectedProject] = useState("all");
   const [selectedApplication, setSelectedApplication] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -82,6 +83,11 @@ const ClientApplications = () => {
 
         setProjects(projectsData);
         setApplications(allApplications);
+
+        // If projectId is provided in URL, set it as selected project
+        if (projectId) {
+          setSelectedProject(projectId);
+        }
       } catch (err) {
         setError(err.response?.data?.error || "Failed to load projects");
       } finally {
@@ -90,7 +96,7 @@ const ClientApplications = () => {
     };
 
     fetchProjects();
-  }, []);
+  }, [projectId]);
 
   const handleStatusUpdate = async (applicationId, status) => {
     try {

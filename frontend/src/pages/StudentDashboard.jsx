@@ -1,105 +1,254 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import DashboardLayout from "../components/DashboardLayout";
 import StatsCard from "../components/StatsCard";
-import ProjectCard from "../components/ProjectCard";
+import EarningChart from "../components/EarningChart";
+import CategoryChart from "../components/CategoryChart";
+import { useAuth } from "../context/AuthContext";
+import { profileAPI } from "../utils/profileAPI";
+import { projectsAPI } from "../utils/projectsAPI";
 
 const StudentDashboard = () => {
-  // Mock data with realistic student earnings in India
-  const dashboardStats = [
-    {
-      icon: "💰",
-      title: "Total Earnings",
-      value: "₹12,450",
-      subtitle: "This month: ₹3,200",
-      trend: "+18%",
-      trendDirection: "up"
-    },
-    {
-      icon: "📝",
-      title: "Active Applications",
-      value: "8",
-      subtitle: "Waiting for response",
-      trend: "+2",
-      trendDirection: "up"
-    },
-    {
-      icon: "⚡",
-      title: "Active Projects",
-      value: "3",
-      subtitle: "In progress",
-      trend: "0",
-      trendDirection: "up"
-    },
-    {
-      icon: "⭐",
-      title: "Rating",
-      value: "4.6",
-      subtitle: "Based on 8 reviews",
-      trend: "+0.3",
-      trendDirection: "up"
+  const { user } = useAuth();
+  const [profile, setProfile] = useState(null);
+  const [applications, setApplications] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, []);
+
+  const fetchDashboardData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      // Fetch profile data
+      const profileResponse = await profileAPI.getProfile();
+      console.log('Profile response:', profileResponse);
+      if (profileResponse.success) {
+        setProfile(profileResponse.data);
+      }
+
+      // Fetch applications
+      const applicationsResponse = await projectsAPI.getMyApplications();
+      console.log('Applications response:', applicationsResponse);
+      if (applicationsResponse.success) {
+        const appData = applicationsResponse.data.data || applicationsResponse.data || [];
+        setApplications(Array.isArray(appData) ? appData : []);
+      }
+    } catch (err) {
+      console.error('Error fetching dashboard data:', err);
+      setError('Failed to load dashboard data');
+    } finally {
+      setLoading(false);
     }
-  ];
+  };
 
-  const recentProjects = [
-    {
-      id: 1,
-      title: "Simple Portfolio Website",
-      client: "Priya Nair - Digital Solutions",
-      budget: "4,500",
-      status: "in_progress",
-      deadline: "Dec 15, 2024",
-      description: "Create a simple portfolio website using HTML, CSS, and JavaScript. Need responsive design and contact form.",
-      skills: ["HTML", "CSS", "JavaScript", "Responsive Design"],
-      posted_date: "2 days ago"
-    },
-    {
-      id: 2,
-      title: "Logo Design for Local Cafe",
-      client: "Rajesh Kumar - Chai Corner",
-      budget: "2,000",
-      status: "completed",
-      deadline: "Nov 30, 2024",
-      description: "Design a simple and memorable logo for a local chai cafe. Should reflect Indian culture and warmth.",
-      skills: ["Logo Design", "Illustrator", "Branding"],
-      posted_date: "1 week ago"
-    },
-    {
-      id: 3,
-      title: "Social Media Graphics",
-      client: "Amit Sharma - Spice Garden",
-      budget: "1,800",
-      status: "in_progress",
-      deadline: "Dec 10, 2024",
-      description: "Create Instagram posts and stories for a local restaurant's social media marketing.",
-      skills: ["Graphic Design", "Photoshop", "Social Media"],
-      posted_date: "3 days ago"
+  // Calculate stats from real data
+  const calculateStats = () => {
+    const totalEarnings = profile?.totalEarnings || 0;
+    const monthlyEarnings = profile?.monthlyEarnings || 0;
+    const activeApplicationsCount = applications.filter(app => app.status === 'pending').length;
+    const acceptedApplicationsCount = applications.filter(app => app.status === 'accepted').length;
+    const rating = profile?.rating || 0;
+
+    return [
+      {
+        icon: "💰",
+        title: "Total Earnings",
+        value: `₹${totalEarnings.toLocaleString()}`,
+        subtitle: `This month: ₹${monthlyEarnings.toLocaleString()}`,
+        trend: "+18%",
+        trendDirection: "up"
+      },
+      {
+        icon: "📝",
+        title: "Active Applications",
+        value: activeApplicationsCount.toString(),
+        subtitle: "Waiting for response",
+        trend: `+${activeApplicationsCount}`,
+        trendDirection: "up"
+      },
+      {
+        icon: "⚡",
+        title: "Active Projects",
+        value: acceptedApplicationsCount.toString(),
+        subtitle: "In progress",
+        trend: acceptedApplicationsCount > 0 ? "Active" : "None",
+        trendDirection: "up"
+      },
+      {
+        icon: "⭐",
+        title: "Rating",
+        value: rating > 0 ? rating.toFixed(1) : "0.0",
+        subtitle: `Based on ${profile?.completedProjects || 0} projects`,
+        trend: "+0.3",
+        trendDirection: "up"
+      }
+    ];
+  };
+
+  // Calculate profile completion percentage
+  const calculateProfileCompletion = () => {
+    if (!profile) return 0;
+    let completion = 0;
+    const fields = [
+      profile.name,
+      profile.email,
+      profile.skills && profile.skills.length > 0,
+      profile.portfolio && profile.portfolio.length > 0,
+      profile.education && profile.education.length > 0,
+      profile.certifications && profile.certifications.length > 0,
+      profile.bio,
+      profile.location
+    ];
+    completion = (fields.filter(Boolean).length / fields.length) * 100;
+    return Math.round(completion);
+  };
+
+  // Get profile completion items
+  const getProfileCompletionItems = () => {
+    if (!profile) return [];
+    return [
+      { label: "Basic Information", completed: !!profile.name && !!profile.email },
+      { label: "Skills Added", completed: profile.skills && profile.skills.length > 0 },
+      { label: "Portfolio Projects", completed: profile.portfolio && profile.portfolio.length > 0 },
+      { label: "Education Details", completed: profile.education && profile.education.length > 0 },
+      { label: "Certifications", completed: profile.certifications && profile.certifications.length > 0 },
+      { label: "Bio & Location", completed: !!profile.bio && !!profile.location }
+    ];
+  };
+
+  // Generate earning chart data from profile
+  const getEarningChartData = () => {
+    // Only return data if we have earnings
+    if (!profile || profile.totalEarnings === 0) {
+      return [];
     }
-  ];
+    
+    // Return only the current month's data if available
+    return [
+      {
+        month: 'Current Month',
+        amount: profile.monthlyEarnings || 0
+      }
+    ];
+  };
 
-  const recentActivities = [
-    { type: "application", message: "Applied to 'WordPress website needed'", time: "2 hours ago", icon: "📝" },
-    { type: "message", message: "New message from Priya Nair", time: "4 hours ago", icon: "💬" },
-    { type: "payment", message: "Payment received: ₹2,000", time: "1 day ago", icon: "💰" },
-    { type: "review", message: "New review from Rajesh Kumar (5⭐)", time: "2 days ago", icon: "⭐" },
-    { type: "project", message: "Project 'Logo Design' completed", time: "3 days ago", icon: "✅" }
-  ];
+  // Generate category data from applications
+  const getCategoryData = () => {
+    if (applications.length === 0) {
+      return [];
+    }
 
-  const skillsProgress = [
-    { skill: "Web Development", level: 75, projects: 6 },
-    { skill: "Graphic Design", level: 85, projects: 8 },
-    { skill: "Content Writing", level: 60, projects: 4 },
-    { skill: "Social Media", level: 70, projects: 5 }
-  ];
+    const categoryMap = {};
+    applications.forEach(app => {
+      const category = app.project?.category || 'Other';
+      if (!categoryMap[category]) {
+        categoryMap[category] = 0;
+      }
+      categoryMap[category]++;
+    });
+
+    const total = Object.values(categoryMap).reduce((sum, count) => sum + count, 0) || 1;
+    const colors = ['bg-blue-500', 'bg-purple-500', 'bg-pink-500', 'bg-green-500', 'bg-gray-500', 'bg-indigo-500', 'bg-red-500', 'bg-yellow-500'];
+    
+    return Object.entries(categoryMap).map((entry, index) => ({
+      category: entry[0],
+      percentage: Math.round((entry[1] / total) * 100),
+      color: colors[index % colors.length],
+      count: entry[1]
+    }));
+  };
+
+  // Recent activities
+  const getRecentActivities = () => {
+    const activities = [];
+    
+    if (applications.length > 0) {
+      activities.push({
+        type: "application",
+        message: `Applied to ${applications.length} projects`,
+        time: "Recently",
+        icon: "📝"
+      });
+    }
+
+    if (profile?.completedProjects > 0) {
+      activities.push({
+        type: "project",
+        message: `Completed ${profile.completedProjects} projects`,
+        time: "All time",
+        icon: "✅"
+      });
+    }
+
+    if (profile?.rating > 0) {
+      activities.push({
+        type: "review",
+        message: `Rating: ${profile.rating.toFixed(1)}⭐`,
+        time: "Current",
+        icon: "⭐"
+      });
+    }
+
+    if (profile?.totalEarnings > 0) {
+      activities.push({
+        type: "payment",
+        message: `Total earnings: ₹${profile.totalEarnings.toLocaleString()}`,
+        time: "All time",
+        icon: "💰"
+      });
+    }
+
+    return activities.length > 0 ? activities : [
+      { type: "info", message: "Start applying to projects to see activity", time: "Now", icon: "ℹ️" }
+    ];
+  };
+
+  // Skills progress
+  const getSkillsProgress = () => {
+    if (!profile?.skills || profile.skills.length === 0) {
+      return [];
+    }
+    return profile.skills.slice(0, 4).map(skill => ({
+      skill: skill.name || skill,
+      level: skill.level ? (skill.level / 5) * 100 : 75,
+      projects: skill.projects || 0
+    }));
+  };
+
+  if (loading) {
+    return (
+      <DashboardLayout userType="student">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  const dashboardStats = calculateStats();
+  const profileCompletion = calculateProfileCompletion();
+  const profileCompletionItems = getProfileCompletionItems();
+  const recentActivities = getRecentActivities();
+  const skillsProgress = getSkillsProgress();
+  const displayName = profile?.name || user?.name || 'Student';
+  const earningChartData = getEarningChartData();
+  const categoryData = getCategoryData();
 
   return (
     <DashboardLayout userType="student">
       <div className="space-y-6">
         {/* Welcome Section */}
         <div className="bg-gradient-to-r from-indigo-500 to-purple-600 rounded-xl p-6 text-white">
-          <h1 className="text-3xl font-bold mb-2">Welcome back, Shreeharsha! 👋</h1>
+          <h1 className="text-3xl font-bold mb-2">Welcome back, {displayName}! 👋</h1>
           <p className="text-indigo-100 mb-4">
-            You have 3 new project opportunities and 2 messages waiting for you.
+            {applications.length > 0 
+              ? `You have ${applications.filter(a => a.status === 'pending').length} pending applications and ${applications.filter(a => a.status === 'accepted').length} active projects.`
+              : "Start applying to projects to grow your freelance career!"}
           </p>
           <div className="flex flex-wrap gap-3">
             <Link
@@ -124,19 +273,40 @@ const StudentDashboard = () => {
           ))}
         </div>
 
+        {/* Charts Section */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Recent Projects */}
+          {/* Earning Chart */}
+          <div className="lg:col-span-2">
+            <EarningChart data={earningChartData} title="Monthly Earnings" />
+          </div>
+
+          {/* Category Breakdown */}
+          <div>
+            <CategoryChart data={categoryData} title="Applications by Category" />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Recent Activity */}
           <div className="lg:col-span-2 space-y-4">
             <div className="flex justify-between items-center">
-              <h2 className="text-xl font-bold text-gray-900">Recent Projects</h2>
-              <Link to="/student/active" className="text-indigo-600 hover:text-indigo-700 font-medium text-sm">
+              <h2 className="text-xl font-bold text-gray-900">Recent Activity</h2>
+              <Link to="/student/applications" className="text-indigo-600 hover:text-indigo-700 font-medium text-sm">
                 View All
               </Link>
             </div>
-            <div className="space-y-4">
-              {recentProjects.map((project) => (
-                <ProjectCard key={project.id} project={project} />
-              ))}
+            <div className="bg-white p-6 rounded-xl shadow-sm border">
+              <div className="space-y-4">
+                {recentActivities.map((activity, index) => (
+                  <div key={index} className="flex items-start gap-4 pb-4 border-b last:border-b-0 last:pb-0">
+                    <span className="text-2xl">{activity.icon}</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-900">{activity.message}</p>
+                      <p className="text-xs text-gray-500 mt-1">{activity.time}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
 
@@ -146,28 +316,18 @@ const StudentDashboard = () => {
             <div className="bg-white p-6 rounded-xl shadow-sm border">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-semibold text-gray-900">Profile Completion</h3>
-                <span className="text-sm text-indigo-600 font-medium">65%</span>
+                <span className="text-sm text-indigo-600 font-medium">{profileCompletion}%</span>
               </div>
               <div className="w-full bg-gray-200 rounded-full h-2 mb-4">
-                <div className="bg-indigo-600 h-2 rounded-full" style={{ width: "65%" }}></div>
+                <div className="bg-indigo-600 h-2 rounded-full transition-all duration-300" style={{ width: `${profileCompletion}%` }}></div>
               </div>
               <div className="space-y-2 text-sm">
-                <div className="flex items-center text-green-600">
-                  <span className="mr-2">✓</span>
-                  Basic Information
-                </div>
-                <div className="flex items-center text-green-600">
-                  <span className="mr-2">✓</span>
-                  Skills Added
-                </div>
-                <div className="flex items-center text-gray-500">
-                  <span className="mr-2">○</span>
-                  Portfolio Projects
-                </div>
-                <div className="flex items-center text-gray-500">
-                  <span className="mr-2">○</span>
-                  Education Details
-                </div>
+                {profileCompletionItems.map((item, index) => (
+                  <div key={index} className={`flex items-center ${item.completed ? 'text-green-600' : 'text-gray-500'}`}>
+                    <span className="mr-2">{item.completed ? '✓' : '○'}</span>
+                    {item.label}
+                  </div>
+                ))}
               </div>
               <Link
                 to="/student/profile"
@@ -177,42 +337,28 @@ const StudentDashboard = () => {
               </Link>
             </div>
 
-            {/* Recent Activity */}
-            <div className="bg-white p-6 rounded-xl shadow-sm border">
-              <h3 className="font-semibold text-gray-900 mb-4">Recent Activity</h3>
-              <div className="space-y-3">
-                {recentActivities.map((activity, index) => (
-                  <div key={index} className="flex items-start gap-3">
-                    <span className="text-lg">{activity.icon}</span>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm text-gray-900">{activity.message}</p>
-                      <p className="text-xs text-gray-500">{activity.time}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
             {/* Skills Progress */}
-            <div className="bg-white p-6 rounded-xl shadow-sm border">
-              <h3 className="font-semibold text-gray-900 mb-4">Skills Progress</h3>
-              <div className="space-y-4">
-                {skillsProgress.map((skill, index) => (
-                  <div key={index}>
-                    <div className="flex justify-between items-center mb-1">
-                      <span className="text-sm font-medium text-gray-700">{skill.skill}</span>
-                      <span className="text-xs text-gray-500">{skill.projects} projects</span>
+            {skillsProgress.length > 0 && (
+              <div className="bg-white p-6 rounded-xl shadow-sm border">
+                <h3 className="font-semibold text-gray-900 mb-4">Skills Progress</h3>
+                <div className="space-y-4">
+                  {skillsProgress.map((skill, index) => (
+                    <div key={index}>
+                      <div className="flex justify-between items-center mb-1">
+                        <span className="text-sm font-medium text-gray-700">{skill.skill}</span>
+                        <span className="text-xs text-gray-500">{skill.projects} projects</span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div
+                          className="bg-indigo-600 h-2 rounded-full transition-all duration-300"
+                          style={{ width: `${skill.level}%` }}
+                        ></div>
+                      </div>
                     </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div
-                        className="bg-indigo-600 h-2 rounded-full transition-all duration-300"
-                        style={{ width: `${skill.level}%` }}
-                      ></div>
-                    </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Earning Tips */}
             <div className="bg-gradient-to-br from-green-50 to-blue-50 p-4 rounded-xl border border-green-200">
@@ -221,7 +367,9 @@ const StudentDashboard = () => {
                 <h4 className="font-semibold text-gray-900">Tip of the Day</h4>
               </div>
               <p className="text-sm text-gray-600">
-                Complete your profile to increase your chances of getting hired by 40%!
+                {profileCompletion < 80 
+                  ? "Complete your profile to increase your chances of getting hired by 40%!"
+                  : "Keep your profile updated and respond quickly to messages to get more projects!"}
               </p>
             </div>
           </div>

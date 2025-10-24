@@ -3,6 +3,8 @@ import DashboardLayout from "../components/DashboardLayout";
 import ProjectCard from "../components/ProjectCard";
 import api from "../utils/api";
 import { useAuth } from "../context/AuthContext";
+import { reviewsAPI } from "../utils/reviewsAPI";
+import ReviewCard from "../components/ReviewCard";
 
 /* ----------------- Small utils ----------------- */
 
@@ -352,12 +354,13 @@ const emptyProfile = {
 };
 
 export default function ClientProfile() {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const [profile, setProfile] = useState(emptyProfile);
   const [draft, setDraft] = useState(emptyProfile);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState("overview");
+  const [reviews, setReviews] = useState([]);
 
   const [editMode, setEditMode] = useState({ header: false, about: false, details: false });
 
@@ -383,6 +386,25 @@ export default function ClientProfile() {
     };
     load();
   }, [token]);
+
+  useEffect(() => {
+    if (user?._id) {
+      fetchReviews();
+    }
+  }, [user]);
+
+  const fetchReviews = async () => {
+    try {
+      if (user?._id) {
+        const response = await reviewsAPI.getReviewsForUser(user._id, 1, 20);
+        if (response.success) {
+          setReviews(response.data.reviews || []);
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching reviews:", error);
+    }
+  };
 
   // helpers
   const startEdit = (section) => {
@@ -529,25 +551,25 @@ export default function ClientProfile() {
 
   const renderReviews = () => (
     <div className="bg-white p-6 rounded-xl shadow-sm border">
-      <h3 className="text-lg font-semibold text-gray-900 mb-6">Student Reviews</h3>
-      <div className="space-y-6">
-        {(profile.reviews || []).map((r) => (
-          <div key={r.id || r._id} className="border-b pb-6 last:border-b-0">
-            <div className="flex items-start justify-between mb-3">
-              <div>
-                <h4 className="font-medium text-gray-900">{r.studentName}</h4>
-                <p className="text-sm text-gray-500">
-                  {r.project} • {r.date}
-                </p>
-              </div>
-              <div className="flex">
-                <Stars value={r.rating || 0} />
-              </div>
-            </div>
-            <p className="text-gray-600">{r.comment}</p>
-          </div>
-        ))}
-      </div>
+      <h3 className="text-lg font-semibold text-gray-900 mb-4">
+        Reviews ({reviews.length})
+      </h3>
+      {reviews.length > 0 ? (
+        <div className="space-y-4">
+          {reviews.map((review) => (
+            <ReviewCard
+              key={review._id}
+              review={review}
+              currentUserId={user?._id}
+              onUpdate={fetchReviews}
+            />
+          ))}
+        </div>
+      ) : (
+        <div className="text-center py-8 text-gray-500">
+          No reviews yet
+        </div>
+      )}
     </div>
   );
 

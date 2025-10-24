@@ -9,6 +9,7 @@ const StudentApplications = () => {
   const [applications, setApplications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [selectedApplication, setSelectedApplication] = useState(null);
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -299,7 +300,7 @@ const StudentApplications = () => {
                         </button>
                       )}
                       <button 
-                        onClick={() => navigate(`/projects/${application.project._id}`)}
+                        onClick={() => setSelectedApplication(application)}
                         className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm"
                       >
                         View Details
@@ -364,6 +365,119 @@ const StudentApplications = () => {
             </div>
           </div>
         </div>
+
+        {/* Application Details Modal */}
+        {selectedApplication && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+              <div className="p-6 border-b flex items-center justify-between">
+                <h2 className="text-2xl font-bold text-gray-900">Application Details</h2>
+                <button 
+                  onClick={() => setSelectedApplication(null)}
+                  className="text-gray-400 hover:text-gray-600 text-2xl"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="p-6 space-y-6">
+                {/* Project Info */}
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-3">Project Information</h3>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Project Title:</span>
+                      <span className="font-medium text-gray-900">{selectedApplication.projectTitle}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Client:</span>
+                      <span className="font-medium text-gray-900">{selectedApplication.client}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Budget:</span>
+                      <span className="font-medium text-gray-900">{selectedApplication.budget}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Deadline:</span>
+                      <span className="font-medium text-gray-900">{selectedApplication.deadline}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Status:</span>
+                      {getStatusBadge(selectedApplication.status)}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Your Application */}
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-3">Your Application</h3>
+                  <div className="space-y-3">
+                    <div>
+                      <span className="text-sm font-medium text-gray-600">Proposed Budget:</span>
+                      <p className="text-gray-900 font-semibold">{selectedApplication.proposedBudget}</p>
+                    </div>
+                    <div>
+                      <span className="text-sm font-medium text-gray-600">Timeline:</span>
+                      <p className="text-gray-900">{selectedApplication.timeline}</p>
+                    </div>
+                    <div>
+                      <span className="text-sm font-medium text-gray-600">Applied Date:</span>
+                      <p className="text-gray-900">{selectedApplication.appliedDate}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Cover Letter */}
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-3">Cover Letter</h3>
+                  <div className="p-4 bg-gray-50 rounded-lg">
+                    <p className="text-gray-700 leading-relaxed">{selectedApplication.coverLetter}</p>
+                  </div>
+                </div>
+
+                {/* Project Description */}
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-3">Project Description</h3>
+                  <div className="p-4 bg-gray-50 rounded-lg">
+                    <p className="text-gray-700 leading-relaxed">{selectedApplication.project?.description}</p>
+                  </div>
+                </div>
+
+                {/* Skills Required */}
+                {selectedApplication.project?.skillsRequired && selectedApplication.project.skillsRequired.length > 0 && (
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-3">Skills Required</h3>
+                    <div className="flex flex-wrap gap-2">
+                      {selectedApplication.project.skillsRequired.map((skill, index) => (
+                        <span key={index} className="px-3 py-1 bg-indigo-50 text-indigo-700 rounded-full text-sm font-medium">
+                          {skill}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="p-6 border-t flex gap-3 justify-end">
+                <button
+                  onClick={() => setSelectedApplication(null)}
+                  className="px-6 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  Close
+                </button>
+                <button
+                  onClick={() => {
+                    navigate(`/projects/${selectedApplication.project._id}`);
+                    setSelectedApplication(null);
+                  }}
+                  className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+                >
+                  View Full Project
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </DashboardLayout>
   );
