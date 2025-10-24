@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import DashboardLayout from '../components/DashboardLayout';
 import { projectsAPI } from '../utils/projectsAPI';
+import ReviewModal from '../components/ReviewModal';
 
 const ClientProjects = () => {
   const [projects, setProjects] = useState([]);
@@ -11,6 +12,13 @@ const ClientProjects = () => {
   const [editFormData, setEditFormData] = useState({});
   const [isSubmittingEdit, setIsSubmittingEdit] = useState(false);
   const [editError, setEditError] = useState(null);
+  const [filterStatus, setFilterStatus] = useState('all');
+  const [reviewModal, setReviewModal] = useState({
+    isOpen: false,
+    projectId: null,
+    revieweeId: null,
+    revieweeName: "",
+  });
   const navigate = useNavigate();
 
   const commonSkills = [
@@ -507,15 +515,48 @@ const ClientProjects = () => {
           </div>
         </div>
 
-        {/* Projects List */}
-        <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
-          {projects.length > 0 ? (
+        {/* Filter Tabs */}
+        <div className="bg-white rounded-xl shadow-sm border">
+          <div className="flex flex-wrap border-b">
+            {[
+              { id: 'all', label: 'All Projects', count: projects.length },
+              { id: 'open', label: 'Open', count: projects.filter(p => p.status === 'open').length },
+              { id: 'in-progress', label: 'In Progress', count: projects.filter(p => p.status === 'in-progress').length },
+              { id: 'under-review', label: 'Under Review', count: projects.filter(p => p.status === 'under-review').length },
+              { id: 'completed', label: 'Completed', count: projects.filter(p => p.status === 'completed').length }
+            ].map((filter) => (
+              <button
+                key={filter.id}
+                onClick={() => setFilterStatus(filter.id)}
+                className={`flex items-center gap-2 px-6 py-4 font-medium border-b-2 transition-colors ${
+                  filterStatus === filter.id
+                    ? "border-indigo-600 text-indigo-600"
+                    : "border-transparent text-gray-600 hover:text-gray-900"
+                }`}
+              >
+                {filter.label}
+                <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                  filterStatus === filter.id
+                    ? "bg-indigo-100 text-indigo-600"
+                    : "bg-gray-100 text-gray-600"
+                }`}>
+                  {filter.count}
+                </span>
+              </button>
+            ))}
+          </div>
+
+          {/* Projects List */}
+          {(filterStatus === 'all' ? projects : projects.filter(p => p.status === filterStatus)).length > 0 ? (
             <div className="divide-y">
-              {projects.map((project) => (
+              {(filterStatus === 'all' ? projects : projects.filter(p => p.status === filterStatus)).map((project) => {
+                // Find accepted application to get student info
+                const acceptedApp = project.applications?.find(app => app.status === 'accepted' || app.status === 'in_progress');
+                
+                return (
                 <div 
                   key={project._id} 
-                  className="p-6 hover:bg-gray-50 transition-colors cursor-pointer"
-                  onClick={() => navigate(`/client/projects/${project._id}`)}
+                  className="p-6 hover:bg-gray-50 transition-colors"
                 >
                   <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div className="flex-1">
@@ -579,10 +620,27 @@ const ClientProjects = () => {
                       >
                         Edit Project
                       </button>
+                      {project.status === 'completed' && acceptedApp && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setReviewModal({
+                              isOpen: true,
+                              projectId: project._id,
+                              revieweeId: acceptedApp.student._id,
+                              revieweeName: acceptedApp.student.name,
+                            });
+                          }}
+                          className="px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-colors text-sm"
+                        >
+                          ⭐ Leave Review
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
           ) : (
             <div className="text-center py-12">
@@ -636,6 +694,19 @@ const ClientProjects = () => {
 
         {/* Edit Project Modal */}
         {renderEditModal()}
+
+        {/* Review Modal */}
+        <ReviewModal
+          isOpen={reviewModal.isOpen}
+          onClose={() => setReviewModal({ isOpen: false, projectId: null, revieweeId: null, revieweeName: "" })}
+          projectId={reviewModal.projectId}
+          revieweeId={reviewModal.revieweeId}
+          revieweeName={reviewModal.revieweeName}
+          onSuccess={() => {
+            alert("Review submitted successfully!");
+            fetchProjects();
+          }}
+        />
       </div>
     </DashboardLayout>
   );

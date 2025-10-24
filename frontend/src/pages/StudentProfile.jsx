@@ -5,6 +5,9 @@ import AddSkillModal from "../components/AddSkillModal";
 import AddEducationModal from "../components/AddEducationModal";
 import AddCertificationModal from "../components/AddCertificationModal";
 import AddPortfolioModal from "../components/AddPortfolioModal";
+import { reviewsAPI } from "../utils/reviewsAPI";
+import ReviewCard from "../components/ReviewCard";
+import { useAuth } from "../context/AuthContext";
 
 const StudentProfile = () => {
   const [activeTab, setActiveTab] = useState("overview");
@@ -17,12 +20,20 @@ const StudentProfile = () => {
   const [showEducationModal, setShowEducationModal] = useState(false);
   const [showCertificationModal, setShowCertificationModal] = useState(false);
   const [showPortfolioModal, setShowPortfolioModal] = useState(false);
+  const [reviews, setReviews] = useState([]);
+  const { user } = useAuth();
 
   const [formData, setFormData] = useState({ name: "", level: "" });
 
   useEffect(() => {
     fetchProfile();
   }, []);
+
+  useEffect(() => {
+    if (user?._id) {
+      fetchReviews();
+    }
+  }, [user]);
 
   const fetchProfile = async () => {
     try {
@@ -43,6 +54,19 @@ const StudentProfile = () => {
       alert("Failed to load profile");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchReviews = async () => {
+    try {
+      if (user?._id) {
+        const response = await reviewsAPI.getReviewsForUser(user._id, 1, 20);
+        if (response.success) {
+          setReviews(response.data.reviews || []);
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching reviews:", error);
     }
   };
 
@@ -371,6 +395,32 @@ const StudentProfile = () => {
     </div>
   );
 
+  const renderReviews = () => (
+    <div className="space-y-6">
+      <div className="bg-white p-6 rounded-xl shadow-sm border">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">
+          Reviews ({reviews.length})
+        </h3>
+        {reviews.length > 0 ? (
+          <div className="space-y-4">
+            {reviews.map((review) => (
+              <ReviewCard
+                key={review._id}
+                review={review}
+                currentUserId={user?._id}
+                onUpdate={fetchReviews}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-8 text-gray-500">
+            No reviews yet
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
   const renderEducation = () => (
     <div className="space-y-6">
       <div className="bg-white p-6 rounded-xl shadow-sm border">
@@ -523,6 +573,7 @@ const StudentProfile = () => {
           <div className="p-6">
             {activeTab === "overview" && renderOverview()}
             {activeTab === "portfolio" && renderPortfolio()}
+            {activeTab === "reviews" && renderReviews()}
             {activeTab === "education" && renderEducation()}
           </div>
         </div>

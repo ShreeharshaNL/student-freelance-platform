@@ -2,11 +2,27 @@ import React, { useState, useEffect } from "react";
 import DashboardLayout from "../components/DashboardLayout";
 import { projectsAPI } from "../utils/projectsAPI";
 import { normalizeStatus, getStatusLabel, getStatusBadgeClass } from "../utils/status";
+import ReviewModal from "../components/ReviewModal";
+import { reviewsAPI } from "../utils/reviewsAPI";
+import SubmitProjectModal from "../components/SubmitProjectModal";
+import { submissionsAPI } from "../utils/submissionsAPI";
 
 const StudentActiveProjects = () => {
   const [activeFilter, setActiveFilter] = useState("all");
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [reviewModal, setReviewModal] = useState({
+    isOpen: false,
+    projectId: null,
+    revieweeId: null,
+    revieweeName: "",
+  });
+  const [submitModal, setSubmitModal] = useState({
+    isOpen: false,
+    projectId: null,
+    projectTitle: "",
+  });
+  const [submissions, setSubmissions] = useState({});
 
   useEffect(() => {
     const fetchActiveProjects = async () => {
@@ -28,7 +44,8 @@ const StudentActiveProjects = () => {
             return {
               id: proj._id,
               title: proj.title,
-              client: proj.client?.name || proj.client?.name || "Client",
+              client: proj.client?.name || "Client",
+              clientId: proj.client?._id,
               budget: proj.budget || 0,
               status: proj.status || item.status || "in_progress",
               progress: item.progress || 0,
@@ -37,10 +54,14 @@ const StudentActiveProjects = () => {
               description: proj.description || "",
               milestones: [],
               messages: 0,
-              lastUpdate: ""
+              lastUpdate: "",
+              applicationStatus: item.status
             };
           })
-          .filter(p => p.status === 'in-progress' || p.status === 'accepted' || p.status === 'in_progress');
+          .filter(p => {
+            const status = normalizeStatus(p.status);
+            return ['in_progress', 'under_review', 'completed'].includes(status);
+          });
 
         setProjects(active);
       } catch (err) {
@@ -203,7 +224,7 @@ const StudentActiveProjects = () => {
                         </div>
                         <div className="flex flex-col items-end gap-2">
                           {getStatusBadge(project.status)}
-                          <span className="text-xs text-gray-500">Updated {project.lastUpdate}</span>
+                          <span className="text-xs text-gray-500">Status: {normalizeStatus(project.status)}</span>
                         </div>
                       </div>
 
@@ -234,9 +255,47 @@ const StudentActiveProjects = () => {
                       <button className="px-4 py-2 text-indigo-600 border border-indigo-600 rounded-lg hover:bg-indigo-50 transition-colors text-sm">
                         Message Client
                       </button>
-                      <button className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm">
-                        Update Progress
-                      </button>
+                      {normalizeStatus(project.status) === "in_progress" && (
+                        <button
+                          onClick={() => setSubmitModal({
+                            isOpen: true,
+                            projectId: project.id,
+                            projectTitle: project.title,
+                          })}
+                          className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm"
+                        >
+                          📤 Submit Project
+                        </button>
+                      )}
+                      {normalizeStatus(project.status) === "under_review" && (
+                        <button
+                          disabled
+                          className="px-4 py-2 bg-yellow-100 text-yellow-800 rounded-lg cursor-not-allowed transition-colors text-sm"
+                        >
+                          ⏳ Under Review
+                        </button>
+                      )}
+                      {normalizeStatus(project.status) === "completed" && project.clientId && (
+                        <button
+                          onClick={() => {
+                            console.log("Review button clicked", { projectId: project.id, clientId: project.clientId, clientName: project.client });
+                            setReviewModal({
+                              isOpen: true,
+                              projectId: project.id,
+                              revieweeId: project.clientId,
+                              revieweeName: project.client,
+                            });
+                          }}
+                          className="px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-colors text-sm"
+                        >
+                          ⭐ Leave Review
+                        </button>
+                      )}
+                      {normalizeStatus(project.status) === "completed" && !project.clientId && (
+                        <div className="px-4 py-2 bg-red-100 text-red-800 rounded-lg text-sm text-center">
+                          Client ID missing - cannot review
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -338,6 +397,28 @@ const StudentActiveProjects = () => {
           </div>
         </div>
       </div>
+
+      <SubmitProjectModal
+        isOpen={submitModal.isOpen}
+        onClose={() => setSubmitModal({ isOpen: false, projectId: null, projectTitle: "" })}
+        projectId={submitModal.projectId}
+        projectTitle={submitModal.projectTitle}
+        onSuccess={() => {
+          alert("Project submitted for review!");
+          window.location.reload();
+        }}
+      />
+
+      <ReviewModal
+        isOpen={reviewModal.isOpen}
+        onClose={() => setReviewModal({ isOpen: false, projectId: null, revieweeId: null, revieweeName: "" })}
+        projectId={reviewModal.projectId}
+        revieweeId={reviewModal.revieweeId}
+        revieweeName={reviewModal.revieweeName}
+        onSuccess={() => {
+          alert("Review submitted successfully!");
+        }}
+      />
     </DashboardLayout>
   );
 };

@@ -3,12 +3,15 @@ import { useParams, useNavigate } from "react-router-dom";
 import DashboardLayout from "../components/DashboardLayout";
 import { useAuth } from "../context/AuthContext";
 import API from "../utils/api";
+import { reviewsAPI } from "../utils/reviewsAPI";
+import ReviewCard from "../components/ReviewCard";
 
 const ClientProfileView = () => {
   const { clientId } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
   const [client, setClient] = useState(null);
+  const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -22,6 +25,11 @@ const ClientProfileView = () => {
         } else {
           setError(response.data.error || "Failed to load client profile");
         }
+
+        const reviewsResponse = await reviewsAPI.getReviewsForUser(clientId, 1, 10);
+        if (reviewsResponse.success) {
+          setReviews(reviewsResponse.data.reviews || []);
+        }
       } catch (err) {
         console.error("Error fetching client profile:", err);
         setError(err.response?.data?.error || "Failed to load client profile");
@@ -32,6 +40,17 @@ const ClientProfileView = () => {
 
     fetchClientProfile();
   }, [clientId]);
+
+  const fetchReviews = async () => {
+    try {
+      const reviewsResponse = await reviewsAPI.getReviewsForUser(clientId, 1, 10);
+      if (reviewsResponse.success) {
+        setReviews(reviewsResponse.data.reviews || []);
+      }
+    } catch (err) {
+      console.error("Error fetching reviews:", err);
+    }
+  };
 
   if (loading) {
     return (
@@ -184,6 +203,29 @@ const ClientProfileView = () => {
                   </div>
                 )}
               </div>
+            </div>
+
+            {/* Reviews Section */}
+            <div className="bg-white p-6 rounded-xl shadow-sm border">
+              <h2 className="text-xl font-bold text-gray-900 mb-4">
+                Reviews ({reviews.length})
+              </h2>
+              {reviews.length > 0 ? (
+                <div className="space-y-4">
+                  {reviews.map((review) => (
+                    <ReviewCard
+                      key={review._id}
+                      review={review}
+                      currentUserId={user?._id}
+                      onUpdate={fetchReviews}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  No reviews yet
+                </div>
+              )}
             </div>
           </div>
 

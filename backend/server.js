@@ -28,6 +28,8 @@ app.use("/api/profile", require("./routes/profileRoutes"));
 app.use("/api/messages", require("./routes/messagesRoutes"));
 app.use('/api/projects', require('./routes/projectRoutes')); // Project routes should be first before application routes
 app.use('/api/applications', require('./routes/applicationRoutes')); // Updated path to be more RESTful
+app.use('/api/reviews', require('./routes/reviewRoutes'));
+app.use('/api/submissions', require('./routes/submissionRoutes'));
 
 // Default route
 app.get("/", (req, res) => {
