@@ -1,12 +1,15 @@
 import React, { useState, useEffect, useRef } from "react";
 import DashboardLayout from "../components/DashboardLayout";
 import { useAuth } from "../context/AuthContext.jsx";
+import { useLocation } from "react-router-dom";
 import { messagesAPI } from "../utils/messagesAPI";
 import { io } from "socket.io-client";
 import API from "../utils/api";
 
 const Messages = ({ userType = "student" }) => {
-  const [selectedConversation, setSelectedConversation] = useState(null);
+  const location = useLocation();
+  const initialConversation = location.state?.selectedConversation || null;
+  const [selectedConversation, setSelectedConversation] = useState(initialConversation);
   const [newMessage, setNewMessage] = useState("");
   const [conversations, setConversations] = useState([]);
   const [chatMessages, setChatMessages] = useState([]);

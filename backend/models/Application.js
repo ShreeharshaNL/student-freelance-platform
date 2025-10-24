@@ -28,8 +28,14 @@ const applicationSchema = new mongoose.Schema({
     },
     status: {
         type: String,
-        enum: ['pending', 'accepted', 'rejected'],
+        enum: ['pending', 'accepted', 'rejected', 'in_progress', 'in-progress'],
         default: 'pending'
+    },
+    progress: {
+        type: Number,
+        default: 0,
+        min: 0,
+        max: 100
     }
 }, {
     timestamps: true
