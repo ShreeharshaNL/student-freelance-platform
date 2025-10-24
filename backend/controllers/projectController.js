@@ -544,6 +544,108 @@ const updateApplicationStatus = async (req, res) => {
     }
 };
 
+// @desc    Update project
+// @route   PUT /api/projects/:id
+// @access  Private (Client only)
+const updateProject = async (req, res) => {
+    try {
+        if (req.user.role !== 'client') {
+            return res.status(403).json({
+                success: false,
+                error: 'Only clients can update projects'
+            });
+        }
+
+        const project = await Project.findById(req.params.id);
+        if (!project) {
+            return res.status(404).json({
+                success: false,
+                error: 'Project not found'
+            });
+        }
+
+        // Check if user is the project owner
+        if (project.user.toString() !== req.user.id) {
+            return res.status(403).json({
+                success: false,
+                error: 'Not authorized to update this project'
+            });
+        }
+
+        const { 
+            title, 
+            description, 
+            category, 
+            budget,
+            budgetType,
+            deadline,
+            skillsRequired,
+            projectType,
+            experienceLevel,
+            isFeatured,
+            isUrgent
+        } = req.body;
+
+        // Validate required fields
+        if (!title || !description || !category || !budget || !budgetType || !deadline || !skillsRequired) {
+            return res.status(400).json({
+                success: false,
+                error: 'Please provide all required fields'
+            });
+        }
+
+        // Validate budget type
+        if (!['fixed', 'hourly'].includes(budgetType)) {
+            return res.status(400).json({
+                success: false,
+                error: 'Invalid budget type'
+            });
+        }
+
+        // Validate project type
+        if (projectType && !['short-term', 'medium-term', 'long-term'].includes(projectType)) {
+            return res.status(400).json({
+                success: false,
+                error: 'Invalid project type'
+            });
+        }
+
+        // Validate experience level
+        if (experienceLevel && !['beginner', 'intermediate', 'expert'].includes(experienceLevel)) {
+            return res.status(400).json({
+                success: false,
+                error: 'Invalid experience level'
+            });
+        }
+
+        // Update project fields
+        project.title = title;
+        project.description = description;
+        project.category = category;
+        project.budget = Number(budget);
+        project.budgetType = budgetType;
+        project.deadline = new Date(deadline);
+        project.skillsRequired = Array.isArray(skillsRequired) ? skillsRequired : [skillsRequired];
+        project.projectType = projectType || 'short-term';
+        project.experienceLevel = experienceLevel || 'beginner';
+        project.isFeatured = isFeatured || false;
+        project.isUrgent = isUrgent || false;
+
+        await project.save();
+
+        res.json({
+            success: true,
+            data: project
+        });
+    } catch (error) {
+        console.error('Update project error:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Server error'
+        });
+    }
+};
+
 module.exports = {
     getProjects,
     createProject,
@@ -553,5 +655,6 @@ module.exports = {
     calculateFees,
     applyToProject,
     getMyApplications,
-    updateApplicationStatus
+    updateApplicationStatus,
+    updateProject
 };

@@ -101,6 +101,11 @@ ReactDOM.createRoot(document.getElementById("root")).render(
               <ClientProjects />
             </ClientRoute>
           } />
+          <Route path="/client/projects/:projectId/applications" element={
+            <ClientRoute>
+              <ClientApplications />
+            </ClientRoute>
+          } />
           
           {/* General Authenticated Routes */}
           <Route path="/projects" element={
