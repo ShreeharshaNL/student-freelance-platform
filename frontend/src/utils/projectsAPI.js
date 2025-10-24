@@ -21,6 +21,11 @@ export const projectsAPI = {
         return API.get('/projects/my');
     },
 
+    // Update project
+    updateProject: async (id, projectData) => {
+        return API.put(`/projects/${id}`, projectData);
+    },
+
     // Submit application
     submitApplication: async (projectId, applicationData) => {
         return API.post(`/projects/${projectId}/applications`, applicationData);

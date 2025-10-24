@@ -7,7 +7,29 @@ const ClientProjects = () => {
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [editingProject, setEditingProject] = useState(null);
+  const [editFormData, setEditFormData] = useState({});
+  const [isSubmittingEdit, setIsSubmittingEdit] = useState(false);
+  const [editError, setEditError] = useState(null);
   const navigate = useNavigate();
+
+  const commonSkills = [
+    "HTML", "CSS", "JavaScript", "React", "Node.js", "WordPress", "SEO",
+    "Photoshop", "Illustrator", "Canva", "Figma", "Content Writing",
+    "Data Entry", "Excel", "Social Media", "Digital Marketing",
+    "Video Editing", "Translation", "Research", "Customer Service"
+  ];
+
+  const categories = [
+    { value: "web-development", label: "Web Development" },
+    { value: "graphic-design", label: "Graphic Design" },
+    { value: "content-writing", label: "Content Writing" },
+    { value: "data-entry", label: "Data Entry" },
+    { value: "digital-marketing", label: "Digital Marketing" },
+    { value: "mobile-app", label: "Mobile App Development" },
+    { value: "video-editing", label: "Video Editing" },
+    { value: "translation", label: "Translation" }
+  ];
 
   useEffect(() => {
     fetchProjects();
@@ -35,6 +57,362 @@ const ClientProjects = () => {
       <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusStyles[status]}`}>
         {status.charAt(0).toUpperCase() + status.slice(1)}
       </span>
+    );
+  };
+
+  const openEditModal = (project) => {
+    setEditingProject(project);
+    setEditFormData({
+      title: project.title,
+      description: project.description,
+      category: project.category,
+      budget: project.budget,
+      budgetType: project.budgetType,
+      deadline: project.deadline.split('T')[0],
+      skillsRequired: project.skillsRequired,
+      projectType: project.projectType,
+      experienceLevel: project.experienceLevel,
+      isFeatured: project.isFeatured || false,
+      isUrgent: project.isUrgent || false
+    });
+    setEditError(null);
+  };
+
+  const closeEditModal = () => {
+    setEditingProject(null);
+    setEditFormData({});
+    setEditError(null);
+  };
+
+  const handleEditInputChange = (field, value) => {
+    setEditFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleEditSkillToggle = (skill) => {
+    setEditFormData(prev => ({
+      ...prev,
+      skillsRequired: prev.skillsRequired.includes(skill)
+        ? prev.skillsRequired.filter(s => s !== skill)
+        : [...prev.skillsRequired, skill]
+    }));
+  };
+
+  const handleEditSubmit = async () => {
+    setEditError(null);
+
+    if (!editFormData.title || !editFormData.category || !editFormData.description || !editFormData.budget || !editFormData.deadline) {
+      setEditError("Please fill in all required fields");
+      return;
+    }
+
+    if (editFormData.skillsRequired.length === 0) {
+      setEditError("Please select at least one required skill");
+      return;
+    }
+
+    setIsSubmittingEdit(true);
+
+    try {
+      const updateData = {
+        title: editFormData.title,
+        category: editFormData.category,
+        description: editFormData.description,
+        budget: Number(editFormData.budget),
+        budgetType: editFormData.budgetType,
+        skillsRequired: editFormData.skillsRequired,
+        deadline: editFormData.deadline,
+        experienceLevel: editFormData.experienceLevel,
+        projectType: editFormData.projectType,
+        isFeatured: editFormData.isFeatured,
+        isUrgent: editFormData.isUrgent
+      };
+
+      const response = await projectsAPI.updateProject(editingProject._id, updateData);
+
+      if (response.data.success) {
+        // Update the projects list
+        setProjects(projects.map(p => 
+          p._id === editingProject._id ? response.data.data : p
+        ));
+        closeEditModal();
+      }
+    } catch (err) {
+      console.error('Project update error:', err);
+      setEditError(err.response?.data?.error || 'Failed to update project');
+    } finally {
+      setIsSubmittingEdit(false);
+    }
+  };
+
+  const renderEditModal = () => {
+    if (!editingProject) return null;
+
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+        <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+          <div className="p-6 border-b flex items-center justify-between">
+            <h2 className="text-2xl font-bold text-gray-900">Edit Project</h2>
+            <button 
+              onClick={closeEditModal}
+              className="text-gray-400 hover:text-gray-600 text-2xl"
+            >
+              ✕
+            </button>
+          </div>
+
+          <div className="p-6 space-y-6">
+            {editError && (
+              <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+                <p className="text-red-600 text-sm">{editError}</p>
+              </div>
+            )}
+
+            {/* Project Title */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Project Title *
+              </label>
+              <input
+                type="text"
+                placeholder="e.g., Create a WordPress blog for my restaurant"
+                className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                value={editFormData.title}
+                onChange={(e) => handleEditInputChange('title', e.target.value)}
+              />
+            </div>
+
+            {/* Category */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Category *
+              </label>
+              <select
+                className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                value={editFormData.category}
+                onChange={(e) => handleEditInputChange('category', e.target.value)}
+              >
+                <option value="">Select Category</option>
+                {categories.map(cat => (
+                  <option key={cat.value} value={cat.value}>{cat.label}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Project Description */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Project Description *
+              </label>
+              <textarea
+                rows="4"
+                placeholder="Describe your project in detail..."
+                className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 resize-none"
+                value={editFormData.description}
+                onChange={(e) => handleEditInputChange('description', e.target.value)}
+              />
+            </div>
+
+            {/* Skills Required */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Skills Required *
+              </label>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                {commonSkills.map(skill => (
+                  <button
+                    key={skill}
+                    type="button"
+                    onClick={() => handleEditSkillToggle(skill)}
+                    className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      editFormData.skillsRequired.includes(skill)
+                        ? "bg-indigo-600 text-white"
+                        : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                    }`}
+                  >
+                    {skill}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Budget Type */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Budget Type *
+              </label>
+              <div className="grid grid-cols-2 gap-4">
+                <button
+                  type="button"
+                  onClick={() => handleEditInputChange('budgetType', 'fixed')}
+                  className={`p-4 border rounded-lg text-left transition-colors ${
+                    editFormData.budgetType === 'fixed'
+                      ? "border-indigo-600 bg-indigo-50"
+                      : "border-gray-200 hover:border-gray-300"
+                  }`}
+                >
+                  <div className="font-medium text-gray-900">Fixed Price</div>
+                  <div className="text-sm text-gray-500">Pay a set amount</div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleEditInputChange('budgetType', 'hourly')}
+                  className={`p-4 border rounded-lg text-left transition-colors ${
+                    editFormData.budgetType === 'hourly'
+                      ? "border-indigo-600 bg-indigo-50"
+                      : "border-gray-200 hover:border-gray-300"
+                  }`}
+                >
+                  <div className="font-medium text-gray-900">Hourly Rate</div>
+                  <div className="text-sm text-gray-500">Pay per hour</div>
+                </button>
+              </div>
+            </div>
+
+            {/* Budget Amount */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                {editFormData.budgetType === 'fixed' ? 'Project Budget *' : 'Hourly Rate *'}
+              </label>
+              <div className="relative">
+                <span className="absolute left-3 top-3 text-gray-500">₹</span>
+                <input
+                  type="number"
+                  placeholder={editFormData.budgetType === 'fixed' ? '5000' : '200'}
+                  className="w-full pl-8 pr-3 py-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                  value={editFormData.budget}
+                  onChange={(e) => handleEditInputChange('budget', e.target.value)}
+                />
+              </div>
+            </div>
+
+            {/* Deadline */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Project Deadline *
+              </label>
+              <input
+                type="date"
+                className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                value={editFormData.deadline}
+                onChange={(e) => handleEditInputChange('deadline', e.target.value)}
+              />
+            </div>
+
+            {/* Project Duration */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Project Duration
+              </label>
+              <div className="grid grid-cols-3 gap-3">
+                {[
+                  { value: 'short-term', label: 'Short-term', desc: 'Less than 1 month' },
+                  { value: 'medium-term', label: 'Medium-term', desc: '1-3 months' },
+                  { value: 'long-term', label: 'Long-term', desc: '3+ months' }
+                ].map(option => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() => handleEditInputChange('projectType', option.value)}
+                    className={`p-3 border rounded-lg text-center transition-colors ${
+                      editFormData.projectType === option.value
+                        ? "border-indigo-600 bg-indigo-50"
+                        : "border-gray-200 hover:border-gray-300"
+                    }`}
+                  >
+                    <div className="font-medium text-gray-900 text-sm">{option.label}</div>
+                    <div className="text-xs text-gray-500 mt-1">{option.desc}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Experience Level */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Student Experience Level
+              </label>
+              <div className="grid grid-cols-3 gap-3">
+                {[
+                  { value: 'beginner', label: 'Beginner', desc: 'New to freelancing' },
+                  { value: 'intermediate', label: 'Intermediate', desc: 'Some experience' },
+                  { value: 'expert', label: 'Expert', desc: 'Highly experienced' }
+                ].map(option => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() => handleEditInputChange('experienceLevel', option.value)}
+                    className={`p-3 border rounded-lg text-center transition-colors ${
+                      editFormData.experienceLevel === option.value
+                        ? "border-indigo-600 bg-indigo-50"
+                        : "border-gray-200 hover:border-gray-300"
+                    }`}
+                  >
+                    <div className="font-medium text-gray-900 text-sm">{option.label}</div>
+                    <div className="text-xs text-gray-500 mt-1">{option.desc}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Additional Options */}
+            <div className="space-y-3 border-t pt-4">
+              <div className="flex items-center gap-3">
+                <input 
+                  type="checkbox" 
+                  id="edit-featured" 
+                  checked={editFormData.isFeatured}
+                  onChange={(e) => handleEditInputChange('isFeatured', e.target.checked)}
+                  className="rounded text-indigo-600 focus:ring-indigo-500"
+                />
+                <label htmlFor="edit-featured" className="text-sm text-gray-700">
+                  Make this a featured project
+                </label>
+              </div>
+              
+              <div className="flex items-center gap-3">
+                <input 
+                  type="checkbox" 
+                  id="edit-urgent" 
+                  checked={editFormData.isUrgent}
+                  onChange={(e) => handleEditInputChange('isUrgent', e.target.checked)}
+                  className="rounded text-indigo-600 focus:ring-indigo-500"
+                />
+                <label htmlFor="edit-urgent" className="text-sm text-gray-700">
+                  Mark as urgent
+                </label>
+              </div>
+            </div>
+          </div>
+
+          {/* Modal Footer */}
+          <div className="p-6 border-t flex gap-3 justify-end">
+            <button
+              onClick={closeEditModal}
+              disabled={isSubmittingEdit}
+              className="px-6 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleEditSubmit}
+              disabled={isSubmittingEdit}
+              className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center"
+            >
+              {isSubmittingEdit ? (
+                <>
+                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Updating...
+                </>
+              ) : (
+                "Update Project"
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
     );
   };
 
@@ -195,7 +573,7 @@ const ClientProjects = () => {
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          navigate(`/client/projects/${project._id}/edit`);
+                          openEditModal(project);
                         }}
                         className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm"
                       >
@@ -255,6 +633,9 @@ const ClientProjects = () => {
             </div>
           </div>
         </div>
+
+        {/* Edit Project Modal */}
+        {renderEditModal()}
       </div>
     </DashboardLayout>
   );

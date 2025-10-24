@@ -115,16 +115,6 @@ const DashboardLayout = ({ children, userType = "student" }) => {
             </button>
 
             <div className="flex items-center space-x-4">
-              {/* Notifications */}
-              <button className="relative p-2 text-gray-600 hover:text-gray-900">
-                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-5-5-5 5h5zm0 0v-5a6 6 0 0 0-12 0v5" />
-                </svg>
-                <span className="absolute -top-1 -right-1 h-4 w-4 bg-red-500 text-white rounded-full text-xs flex items-center justify-center">
-                  3
-                </span>
-              </button>
-
               {/* Profile dropdown */}
               <div className="relative">
                 <button className="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-50">
