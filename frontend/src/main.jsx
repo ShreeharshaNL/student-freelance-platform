@@ -119,7 +119,7 @@ ReactDOM.createRoot(document.getElementById("root")).render(
               <ProjectDetail />
             </AuthenticatedRoute>
           } />
-          <Route path="/client-profile/:clientId" element={
+          <Route path="/client/:clientId" element={
             <AuthenticatedRoute>
               <ClientProfileView />
             </AuthenticatedRoute>

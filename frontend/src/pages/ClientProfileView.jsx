@@ -16,7 +16,7 @@ const ClientProfileView = () => {
     const fetchClientProfile = async () => {
       try {
         setLoading(true);
-        const response = await API.get(`/users/${clientId}`);
+        const response = await API.get(`/user/${clientId}`);
         if (response.data.success) {
           setClient(response.data.data);
         } else {
@@ -132,6 +132,11 @@ const ClientProfileView = () => {
             {/* About */}
             <div className="bg-white p-6 rounded-xl shadow-sm border">
               <h2 className="text-xl font-bold text-gray-900 mb-4">About</h2>
+              {client.description && (
+                <div className="mb-4">
+                  <p className="text-gray-700">{client.description}</p>
+                </div>
+              )}
               <div className="space-y-4">
                 <div>
                   <label className="text-sm font-medium text-gray-600">Email</label>
@@ -148,18 +153,38 @@ const ClientProfileView = () => {
               </div>
             </div>
 
-            {/* Company Info (if available) */}
-            {client.company && (
-              <div className="bg-white p-6 rounded-xl shadow-sm border">
-                <h2 className="text-xl font-bold text-gray-900 mb-4">Company Information</h2>
-                <div className="space-y-4">
-                  <div>
-                    <label className="text-sm font-medium text-gray-600">Company Name</label>
-                    <p className="text-gray-900 mt-1">{client.company}</p>
-                  </div>
+            {/* Company Info */}
+            <div className="bg-white p-6 rounded-xl shadow-sm border">
+              <h2 className="text-xl font-bold text-gray-900 mb-4">Company Information</h2>
+              <div className="space-y-4">
+                <div>
+                  <label className="text-sm font-medium text-gray-600">Company Name</label>
+                  <p className="text-gray-900 mt-1">{client.companyName || "Not specified"}</p>
                 </div>
+                {client.industryType && (
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">Industry</label>
+                    <p className="text-gray-900 mt-1">{client.industryType}</p>
+                  </div>
+                )}
+                {client.companySize && (
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">Company Size</label>
+                    <p className="text-gray-900 mt-1">{client.companySize}</p>
+                  </div>
+                )}
+                {client.website && (
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">Website</label>
+                    <p className="text-gray-900 mt-1">
+                      <a href={client.website} target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:underline">
+                        {client.website}
+                      </a>
+                    </p>
+                  </div>
+                )}
               </div>
-            )}
+            </div>
           </div>
 
           {/* Sidebar */}
@@ -207,6 +232,12 @@ const ClientProfileView = () => {
                     <span className="text-yellow-500">⭐</span>
                   </div>
                 </div>
+                {client.totalReviews > 0 && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-600">Total Reviews</span>
+                    <span className="font-bold text-gray-900">{client.totalReviews}</span>
+                  </div>
+                )}
                 <div className="flex items-center justify-between">
                   <span className="text-gray-600">Projects Posted</span>
                   <span className="font-bold text-gray-900">{client.projectsPosted || 0}</span>
@@ -215,6 +246,18 @@ const ClientProfileView = () => {
                   <span className="text-gray-600">Students Hired</span>
                   <span className="font-bold text-gray-900">{client.hiredStudents || 0}</span>
                 </div>
+                {client.totalSpent && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-600">Total Spent</span>
+                    <span className="font-bold text-gray-900">{client.totalSpent}</span>
+                  </div>
+                )}
+                {client.responseTime && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-600">Response Time</span>
+                    <span className="font-bold text-gray-900">{client.responseTime}</span>
+                  </div>
+                )}
                 <div className="flex items-center justify-between">
                   <span className="text-gray-600">Member Since</span>
                   <span className="font-bold text-gray-900">
