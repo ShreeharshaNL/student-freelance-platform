@@ -272,6 +272,22 @@ const StudentActiveProjects = () => {
                           <span>{getDaysLeft(project.deadline)} days left</span>
                           <span className="text-xs text-gray-500">{project.lastUpdate ? `Updated ${new Date(project.lastUpdate).toLocaleString()}` : ''}</span>
                         </div>
+
+                        {/* Submit Project button placed under progress bar to separate it from Update Progress */}
+                        {normalizeStatus(project.status) === "in_progress" && (
+                          <div className="mt-3">
+                            <button
+                              onClick={() => setSubmitModal({
+                                isOpen: true,
+                                projectId: project.id,
+                                projectTitle: project.title,
+                              })}
+                              className="px-3 py-1 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm"
+                            >
+                              📤 Submit Project
+                            </button>
+                          </div>
+                        )}
                       </div>
                     </div>
 
@@ -324,14 +340,29 @@ const StudentActiveProjects = () => {
                       </button>
                       {normalizeStatus(project.status) === "in_progress" && (
                         <button
-                          onClick={() => setSubmitModal({
-                            isOpen: true,
-                            projectId: project.id,
-                            projectTitle: project.title,
-                          })}
-                          className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm"
+                          className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm"
+                          onClick={async () => {
+                            const newProgress = window.prompt('Enter new progress percentage (0-100):', project.progress);
+                            if (newProgress === null) return;
+                            const progressNum = Number(newProgress);
+                            if (isNaN(progressNum) || progressNum < 0 || progressNum > 100) {
+                              alert('Please enter a valid number between 0 and 100.');
+                              return;
+                            }
+                            try {
+                              const projectId = project._id || project.id;
+                              console.log('Updating progress:', { projectId, progress: progressNum });
+                              const response = await projectsAPI.updateProjectProgress(projectId, progressNum);
+                              console.log('Progress update response:', response);
+                              // Update UI
+                              setProjects(prev => prev.map(p => (p.id === project.id || p._id === projectId) ? { ...p, progress: progressNum } : p));
+                            } catch (err) {
+                              console.error('Progress update error:', err);
+                              alert(`Failed to update progress: ${err.response?.data?.error || err.message}`);
+                            }
+                          }}
                         >
-                          📤 Submit Project
+                          Update Progress
                         </button>
                       )}
                       {normalizeStatus(project.status) === "under_review" && (
