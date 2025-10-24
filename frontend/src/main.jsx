@@ -20,6 +20,7 @@ import ProjectDetail from "./pages/ProjectDetail.jsx";
 import StudentActiveProjects from "./pages/StudentActiveProjects.jsx";
 import ClientApplications from "./pages/ClientApplications.jsx";
 import ClientProjects from "./pages/ClientProjects.jsx";
+import ClientActive from "./pages/ClientActive.jsx";
 import "./index.css";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
@@ -83,6 +84,11 @@ ReactDOM.createRoot(document.getElementById("root")).render(
           <Route path="/client/applications" element={
             <ClientRoute>
               <ClientApplications />
+            </ClientRoute>
+          } />
+          <Route path="/client/active" element={
+            <ClientRoute>
+              <ClientActive />
             </ClientRoute>
           } />
           <Route path="/client/messages" element={

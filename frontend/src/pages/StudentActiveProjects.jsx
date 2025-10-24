@@ -1,99 +1,76 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import DashboardLayout from "../components/DashboardLayout";
+import { projectsAPI } from "../utils/projectsAPI";
+import { normalizeStatus, getStatusLabel, getStatusBadgeClass } from "../utils/status";
 
 const StudentActiveProjects = () => {
   const [activeFilter, setActiveFilter] = useState("all");
+  const [projects, setProjects] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  // Mock active projects data
-  const projects = [
-    {
-      id: 1,
-      title: "WordPress Blog Setup",
-      client: "Food Blogger",
-      budget: "₹3,800",
-      status: "in_progress",
-      progress: 75,
-      deadline: "Dec 22, 2024",
-      startDate: "Nov 20, 2024",
-      description: "Setting up a professional WordPress blog with custom theme and SEO optimization.",
-      milestones: [
-        { id: 1, title: "WordPress Installation", completed: true, dueDate: "Nov 22", completedDate: "Nov 21" },
-        { id: 2, title: "Theme Setup & Customization", completed: true, dueDate: "Nov 25", completedDate: "Nov 24" },
-        { id: 3, title: "Content Migration", completed: false, dueDate: "Nov 28", completedDate: null },
-        { id: 4, title: "SEO & Final Testing", completed: false, dueDate: "Dec 1", completedDate: null }
-      ],
-      messages: 8,
-      lastUpdate: "2 hours ago"
-    },
-    {
-      id: 2,
-      title: "Social Media Graphics",
-      client: "Local Restaurant",
-      budget: "₹1,800",
-      status: "in_progress",
-      progress: 40,
-      deadline: "Dec 10, 2024",
-      startDate: "Nov 25, 2024",
-      description: "Creating Instagram posts and stories for restaurant's social media marketing.",
-      milestones: [
-        { id: 1, title: "Brand Guidelines Review", completed: true, dueDate: "Nov 26", completedDate: "Nov 26" },
-        { id: 2, title: "Design Concepts (5 posts)", completed: false, dueDate: "Nov 30", completedDate: null },
-        { id: 3, title: "Story Templates (10)", completed: false, dueDate: "Dec 5", completedDate: null },
-        { id: 4, title: "Final Delivery & Revisions", completed: false, dueDate: "Dec 8", completedDate: null }
-      ],
-      messages: 3,
-      lastUpdate: "1 day ago"
-    },
-    {
-      id: 3,
-      title: "YouTube Thumbnail Design",
-      client: "Educational YouTuber",
-      budget: "₹1,400",
-      status: "review",
-      progress: 90,
-      deadline: "Dec 18, 2024",
-      startDate: "Nov 15, 2024",
-      description: "Creating 20 engaging YouTube thumbnails for educational video content.",
-      milestones: [
-        { id: 1, title: "Style Guide Creation", completed: true, dueDate: "Nov 17", completedDate: "Nov 16" },
-        { id: 2, title: "First 10 Thumbnails", completed: true, dueDate: "Nov 22", completedDate: "Nov 21" },
-        { id: 3, title: "Client Review & Feedback", completed: true, dueDate: "Nov 25", completedDate: "Nov 24" },
-        { id: 4, title: "Final 10 Thumbnails", completed: false, dueDate: "Nov 30", completedDate: null }
-      ],
-      messages: 12,
-      lastUpdate: "5 hours ago"
-    }
-  ];
+  useEffect(() => {
+    const fetchActiveProjects = async () => {
+      try {
+        setLoading(true);
+        // Backend: GET /api/projects/my-applications returns applications for projects student applied to
+        const res = await projectsAPI.getMyApplications();
+        if (!res.data.success) {
+          setProjects([]);
+          return;
+        }
+
+        const data = res.data.data || [];
+
+        // Build project list for active projects (accepted or project in-progress)
+        const active = data
+          .map(item => {
+            const proj = item.project || {};
+            return {
+              id: proj._id,
+              title: proj.title,
+              client: proj.client?.name || proj.client?.name || "Client",
+              budget: proj.budget || 0,
+              status: proj.status || item.status || "in_progress",
+              progress: item.progress || 0,
+              deadline: proj.deadline,
+              startDate: item.appliedAt || null,
+              description: proj.description || "",
+              milestones: [],
+              messages: 0,
+              lastUpdate: ""
+            };
+          })
+          .filter(p => p.status === 'in-progress' || p.status === 'accepted' || p.status === 'in_progress');
+
+        setProjects(active);
+      } catch (err) {
+        console.error('Error fetching active projects:', err);
+        setProjects([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchActiveProjects();
+  }, []);
 
   const filters = [
     { id: "all", label: "All Projects", count: projects.length },
-    { id: "in_progress", label: "In Progress", count: projects.filter(p => p.status === "in_progress").length },
-    { id: "review", label: "Under Review", count: projects.filter(p => p.status === "review").length },
-    { id: "completed", label: "Completed", count: projects.filter(p => p.status === "completed").length }
+    { id: "in_progress", label: "In Progress", count: projects.filter(p => normalizeStatus(p.status) === "in_progress").length },
+    { id: "under_review", label: "Under Review", count: projects.filter(p => normalizeStatus(p.status) === "under_review").length },
+    { id: "completed", label: "Completed", count: projects.filter(p => normalizeStatus(p.status) === "completed").length }
   ];
 
-  const filteredProjects = activeFilter === "all" 
-    ? projects 
-    : projects.filter(project => project.status === activeFilter);
+  const filteredProjects = activeFilter === "all"
+    ? projects
+    : projects.filter(project => normalizeStatus(project.status) === activeFilter);
 
   const getStatusBadge = (status) => {
-    const statusStyles = {
-      in_progress: "bg-blue-100 text-blue-800",
-      review: "bg-yellow-100 text-yellow-800",
-      completed: "bg-green-100 text-green-800",
-      on_hold: "bg-gray-100 text-gray-800"
-    };
-
-    const statusLabels = {
-      in_progress: "In Progress",
-      review: "Under Review",
-      completed: "Completed",
-      on_hold: "On Hold"
-    };
-    
+    const cls = getStatusBadgeClass(status);
+    const label = getStatusLabel(status);
     return (
-      <span className={`px-3 py-1 rounded-full text-sm font-medium ${statusStyles[status]}`}>
-        {statusLabels[status]}
+      <span className={`px-3 py-1 rounded-full text-sm font-medium ${cls}`}>
+        {label}
       </span>
     );
   };
@@ -115,6 +92,11 @@ const StudentActiveProjects = () => {
 
   return (
     <DashboardLayout userType="student">
+      {loading && (
+        <div className="flex items-center justify-center min-h-[300px]">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+        </div>
+      )}
       <div className="space-y-6">
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center">
@@ -140,7 +122,7 @@ const StudentActiveProjects = () => {
                 <span className="text-xl">🚀</span>
               </div>
               <div>
-                <div className="text-2xl font-bold text-gray-900">{projects.filter(p => p.status === 'in_progress').length}</div>
+                <div className="text-2xl font-bold text-gray-900">{projects.filter(p => normalizeStatus(p.status) === 'in_progress').length}</div>
                 <div className="text-sm text-gray-600">In Progress</div>
               </div>
             </div>
@@ -152,7 +134,7 @@ const StudentActiveProjects = () => {
                 <span className="text-xl">👁️</span>
               </div>
               <div>
-                <div className="text-2xl font-bold text-gray-900">{projects.filter(p => p.status === 'review').length}</div>
+                <div className="text-2xl font-bold text-gray-900">{projects.filter(p => normalizeStatus(p.status) === 'under_review').length}</div>
                 <div className="text-sm text-gray-600">Under Review</div>
               </div>
             </div>
@@ -165,26 +147,14 @@ const StudentActiveProjects = () => {
               </div>
               <div>
                 <div className="text-2xl font-bold text-gray-900">
-                  ₹{projects.reduce((sum, p) => sum + parseInt(p.budget.replace('₹', '').replace(',', '')), 0).toLocaleString()}
+                  ₹{projects.reduce((sum, p) => sum + (Number(p.budget) || 0), 0).toLocaleString()}
                 </div>
                 <div className="text-sm text-gray-600">Total Value</div>
               </div>
             </div>
           </div>
           
-          <div className="bg-white p-4 rounded-xl shadow-sm border">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-purple-100 rounded-lg">
-                <span className="text-xl">📊</span>
-              </div>
-              <div>
-                <div className="text-2xl font-bold text-gray-900">
-                  {Math.round(projects.reduce((sum, p) => sum + p.progress, 0) / projects.length)}%
-                </div>
-                <div className="text-sm text-gray-600">Avg Progress</div>
-              </div>
-            </div>
-          </div>
+          {/* Avg Progress card removed per request */}
         </div>
 
         {/* Filter Tabs */}

@@ -13,7 +13,7 @@ const {
 router.get('/me', protect, getMyApplications); // Get student's applications
 router.post('/project/:projectId', protect, submitApplication); // Submit application
 router.get('/project/:projectId', protect, getProjectApplications); // Get project applications
-router.put('/:id', protect, updateApplicationStatus); // Update application status
-router.delete('/:id', protect, deleteApplication); // Delete application
+router.put('/:applicationId', protect, updateApplicationStatus); // Update application status
+router.delete('/:applicationId', protect, deleteApplication); // Delete application
 
 module.exports = router;
