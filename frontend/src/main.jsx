@@ -21,6 +21,7 @@ import StudentActiveProjects from "./pages/StudentActiveProjects.jsx";
 import ClientApplications from "./pages/ClientApplications.jsx";
 import ClientProjects from "./pages/ClientProjects.jsx";
 import ClientActive from "./pages/ClientActive.jsx";
+import ClientProfileView from "./pages/ClientProfileView.jsx";
 import "./index.css";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
@@ -116,6 +117,11 @@ ReactDOM.createRoot(document.getElementById("root")).render(
           <Route path="/projects/:id" element={
             <AuthenticatedRoute>
               <ProjectDetail />
+            </AuthenticatedRoute>
+          } />
+          <Route path="/client-profile/:clientId" element={
+            <AuthenticatedRoute>
+              <ClientProfileView />
             </AuthenticatedRoute>
           } />
         </Routes>

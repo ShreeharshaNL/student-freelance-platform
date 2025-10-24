@@ -66,6 +66,12 @@ const StudentProfileSchema = new mongoose.Schema(
       ],
       default: [],
     },
+
+    // Dashboard Stats
+    totalEarnings: { type: Number, default: 0 },
+    monthlyEarnings: { type: Number, default: 0 },
+    rating: { type: Number, default: 0 },
+    completedProjects: { type: Number, default: 0 },
   },
   { timestamps: true }
 );

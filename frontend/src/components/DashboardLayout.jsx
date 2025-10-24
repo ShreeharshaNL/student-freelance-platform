@@ -1,13 +1,30 @@
 //DashboardLayout.jsx
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { profileAPI } from "../utils/profileAPI";
 
 const DashboardLayout = ({ children, userType = "student" }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [profile, setProfile] = useState(null);
   const location = useLocation();
   const navigate = useNavigate();
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
+
+  useEffect(() => {
+    fetchProfile();
+  }, []);
+
+  const fetchProfile = async () => {
+    try {
+      const response = await profileAPI.getProfile();
+      if (response.success) {
+        setProfile(response.data);
+      }
+    } catch (err) {
+      console.error('Error fetching profile:', err);
+    }
+  };
 
   const studentNavItems = [
     { name: "Dashboard", href: "/student/dashboard", icon: "📊" },
@@ -120,12 +137,14 @@ const DashboardLayout = ({ children, userType = "student" }) => {
                 <button className="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-50">
                   <div className="h-8 w-8 bg-indigo-600 rounded-full flex items-center justify-center">
                     <span className="text-white text-sm font-medium">
-                      {userType === "student" ? "S" : "C"}
+                      {profile?.name ? profile.name.charAt(0).toUpperCase() : (userType === "student" ? "S" : "C")}
                     </span>
                   </div>
                   <div className="hidden sm:block text-left">
                     <p className="text-sm font-medium text-gray-900">
-                      {userType === "student" ? "Shreeharsha N L" : "TechCorp Inc."}
+                      {userType === "student" 
+                        ? (profile?.name || user?.name || "Student")
+                        : (profile?.companyName || user?.name || "Client")}
                     </p>
                     <p className="text-xs text-gray-500 capitalize">{userType}</p>
                   </div>
