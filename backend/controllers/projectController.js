@@ -732,5 +732,4 @@ module.exports = {
     getMyApplications,
     updateApplicationStatus,
     updateProjectProgress
-    updateProject
 };
