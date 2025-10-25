@@ -29,23 +29,35 @@ const SubmitProjectModal = ({ isOpen, onClose, projectId, projectTitle, onSucces
       setLoading(true);
       setError(null);
 
-      console.log('Submitting project:', { projectId, formData });
+      console.log('🟢 Submitting project:', { projectId, formData });
+      if (!projectId) {
+        setError("No project ID provided. Cannot submit.");
+        console.error("❌ No projectId passed to modal.");
+        return;
+      }
+
       const response = await submissionsAPI.createSubmission({
         projectId,
         ...formData,
       });
-      console.log('Submission response:', response);
-      console.log('Application status after submission:', response.applicationStatus);
-
+      console.log('🟢 Submission API response:', response);
+      if (!response.success) {
+        setError(response.error || "Submission failed. Try again.");
+        console.error("❌ Submission API error:", response.error);
+        return;
+      }
       if (onSuccess) {
-        // pass response back to parent so it can optimistically update UI
         await onSuccess(response);
       }
       handleClose();
     } catch (err) {
-      console.error("Error submitting project:", err);
-      console.error("Error details:", err.response?.data);
-      setError(err.response?.data?.error || "Failed to submit project");
+      console.error("❌ Error submitting project:", err);
+      if (err.response) {
+        console.error("❌ API error response:", err.response.data);
+        setError(err.response.data?.error || "Failed to submit project");
+      } else {
+        setError(err.message || "Failed to submit project");
+      }
     } finally {
       setLoading(false);
     }
