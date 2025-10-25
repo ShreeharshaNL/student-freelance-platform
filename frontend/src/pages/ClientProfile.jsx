@@ -396,13 +396,32 @@ export default function ClientProfile() {
   const fetchReviews = async () => {
     try {
       if (user?._id) {
-        const response = await reviewsAPI.getReviewsForUser(user._id, 1, 20);
+        console.log('🔍 Fetching reviews for user:', user._id);
+        // Use getMyReviews instead to get received reviews for the logged-in user
+        const response = await reviewsAPI.getMyReviews('received');
+        console.log('📦 Full response:', JSON.stringify(response, null, 2));
+        console.log('📦 Response structure:', {
+          hasSuccess: 'success' in response,
+          successValue: response.success,
+          hasData: 'data' in response,
+          dataType: typeof response.data,
+          dataIsArray: Array.isArray(response.data)
+        });
+        
         if (response.success) {
-          setReviews(response.data.reviews || []);
+          const reviewsList = response.data || [];
+          console.log('✅ Reviews found:', reviewsList.length);
+          console.log('✅ First review:', reviewsList[0]);
+          setReviews(reviewsList);
+        } else {
+          console.log('❌ Failed to fetch reviews:', response);
         }
+      } else {
+        console.log('⚠️ No user ID available');
       }
     } catch (error) {
-      console.error("Error fetching reviews:", error);
+      console.error("❌ Error fetching reviews:", error);
+      console.error("Error details:", error.response?.data);
     }
   };
 

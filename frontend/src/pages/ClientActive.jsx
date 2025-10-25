@@ -34,20 +34,31 @@ const ClientActive = () => {
         }
 
         const projects = res.data.data || [];
-        // For each project, find accepted or in-progress application
+        // For each project, find accepted, in-progress, under_review, or completed application
         const hires = projects
           .map(project => {
-            const acceptedApp = (project.applications || []).find(a => normalizeStatus(a.status) === 'in_progress');
+            const acceptedApp = (project.applications || []).find(a => {
+              const status = normalizeStatus(a.status);
+              return ['in_progress', 'under_review', 'changes_requested', 'rejected', 'completed'].includes(status);
+            });
             if (!acceptedApp) return null;
+            
+            const appStatus = normalizeStatus(acceptedApp.status);
+            // Set progress to 100 for under_review, changes_requested, rejected, and completed
+            const progress = ['under_review', 'changes_requested', 'rejected', 'completed'].includes(appStatus)
+              ? 100 
+              : (typeof acceptedApp.progress === 'number' ? acceptedApp.progress : 0);
+            
             return {
               projectId: project._id,
               projectTitle: project.title,
               budget: project.budget,
               student: acceptedApp.student,
               applicationId: acceptedApp._id,
+              applicationStatus: acceptedApp.status,
               startedAt: acceptedApp.createdAt,
               projectStatus: project.status,
-              progress: typeof acceptedApp.progress === 'number' ? acceptedApp.progress : 0
+              progress: progress
             };
           })
           .filter(Boolean);
@@ -158,6 +169,34 @@ const ClientActive = () => {
                       <div className="text-sm text-gray-600 mt-2">
                         <span className="font-medium">{hire.projectTitle}</span>
                         <span className="ml-2 font-medium">₹{Number(hire.budget).toLocaleString()}</span>
+                      </div>
+                      {/* Status Badge */}
+                      <div className="mt-2">
+                        {normalizeStatus(hire.applicationStatus) === 'under_review' && (
+                          <span className="inline-block px-2 py-1 text-xs bg-yellow-100 text-yellow-800 rounded-full">
+                            🔍 Under Review
+                          </span>
+                        )}
+                        {normalizeStatus(hire.applicationStatus) === 'changes_requested' && (
+                          <span className="inline-block px-2 py-1 text-xs bg-orange-100 text-orange-800 rounded-full">
+                            ⚠️ Changes Requested
+                          </span>
+                        )}
+                        {normalizeStatus(hire.applicationStatus) === 'rejected' && (
+                          <span className="inline-block px-2 py-1 text-xs bg-red-100 text-red-800 rounded-full">
+                            ❌ Rejected
+                          </span>
+                        )}
+                        {normalizeStatus(hire.applicationStatus) === 'completed' && (
+                          <span className="inline-block px-2 py-1 text-xs bg-green-100 text-green-800 rounded-full">
+                            ✅ Completed
+                          </span>
+                        )}
+                        {normalizeStatus(hire.applicationStatus) === 'in_progress' && (
+                          <span className="inline-block px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded-full">
+                            🚀 In Progress
+                          </span>
+                        )}
                       </div>
                       {/* Progress Bar */}
                       <div className="mt-2">

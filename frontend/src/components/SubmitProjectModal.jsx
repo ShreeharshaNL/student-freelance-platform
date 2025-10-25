@@ -29,15 +29,22 @@ const SubmitProjectModal = ({ isOpen, onClose, projectId, projectTitle, onSucces
       setLoading(true);
       setError(null);
 
-      await submissionsAPI.createSubmission({
+      console.log('Submitting project:', { projectId, formData });
+      const response = await submissionsAPI.createSubmission({
         projectId,
         ...formData,
       });
+      console.log('Submission response:', response);
+      console.log('Application status after submission:', response.applicationStatus);
 
-      if (onSuccess) onSuccess();
+      if (onSuccess) {
+        // pass response back to parent so it can optimistically update UI
+        await onSuccess(response);
+      }
       handleClose();
     } catch (err) {
       console.error("Error submitting project:", err);
+      console.error("Error details:", err.response?.data);
       setError(err.response?.data?.error || "Failed to submit project");
     } finally {
       setLoading(false);

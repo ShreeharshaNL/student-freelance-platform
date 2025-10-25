@@ -59,14 +59,58 @@ const StudentProfile = () => {
 
   const fetchReviews = async () => {
     try {
-      if (user?._id) {
-        const response = await reviewsAPI.getReviewsForUser(user._id, 1, 20);
-        if (response.success) {
-          setReviews(response.data.reviews || []);
-        }
+      if (!user?._id) {
+        console.warn('⚠️ No user ID available');
+        return;
+      }
+      
+      console.log('🔍 Fetching reviews for user:', { 
+        userId: user._id,
+        role: user.role 
+      });
+
+      // Add loading state
+      setLoading(true);
+
+      // First check if the API request is properly formed
+      console.log('🔄 Making API request to:', '/reviews/my-reviews', {
+        params: { type: 'received' },
+        headers: { Authorization: 'Bearer ' + localStorage.getItem('token') }
+      });
+
+      // Make the request and capture full network response
+      const response = await reviewsAPI.getMyReviews('received');
+      console.log('📦 Raw API Response:', response);
+      console.log('📦 Response Data:', {
+        success: response.success,
+        dataExists: !!response.data,
+        reviewCount: response.data?.length,
+        firstReview: response.data?.[0]
+      });
+
+      // Process reviews only if we have a valid response
+      if (response.success && Array.isArray(response.data)) {
+        const reviewsList = response.data;
+        console.log('✅ Processed reviews:', {
+          total: reviewsList.length,
+          reviewerIds: reviewsList.map(r => r.reviewer?._id),
+          reviewTypes: reviewsList.map(r => ({ 
+            rating: r.rating,
+            hasCategories: !!r.categories,
+            categoryValues: r.categories ? Object.values(r.categories) : []
+          }))
+        });
+        setReviews(reviewsList);
+      } else {
+        console.error('❌ Invalid response format:', {
+          success: response.success,
+          hasData: 'data' in response,
+          dataType: response.data ? typeof response.data : 'undefined'
+        });
       }
     } catch (error) {
-      console.error("Error fetching reviews:", error);
+      console.error("❌ Error fetching reviews:", error);
+      console.error("Error details:", error.response?.data);
     }
   };
 
@@ -395,31 +439,45 @@ const StudentProfile = () => {
     </div>
   );
 
-  const renderReviews = () => (
-    <div className="space-y-6">
-      <div className="bg-white p-6 rounded-xl shadow-sm border">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">
-          Reviews ({reviews.length})
-        </h3>
-        {reviews.length > 0 ? (
-          <div className="space-y-4">
-            {reviews.map((review) => (
-              <ReviewCard
-                key={review._id}
-                review={review}
-                currentUserId={user?._id}
-                onUpdate={fetchReviews}
-              />
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-8 text-gray-500">
-            No reviews yet
-          </div>
-        )}
+  const renderReviews = () => {
+    console.log('🎨 Rendering reviews section, reviews count:', reviews.length);
+    console.log('🎨 Reviews state:', reviews);
+    
+    return (
+      <div className="space-y-6">
+        <div className="bg-white p-6 rounded-xl shadow-sm border">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">
+            Reviews ({reviews.length})
+          </h3>
+          {loading ? (
+            <div className="text-center py-8">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
+              <p className="text-gray-500 mt-4">Loading reviews...</p>
+            </div>
+          ) : reviews.length > 0 ? (
+            <div className="space-y-4">
+              {reviews.map((review) => {
+                console.log('🎨 Rendering review:', review._id);
+                return (
+                  <ReviewCard
+                    key={review._id}
+                    review={review}
+                    currentUserId={user?._id}
+                    onUpdate={fetchReviews}
+                  />
+                );
+              })}
+            </div>
+          ) : (
+            <div className="text-center py-8 text-gray-500">
+              <p className="text-lg">📋 No reviews yet</p>
+              <p className="text-sm mt-2">Complete projects and receive reviews from clients to see them here</p>
+            </div>
+          )}
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   const renderEducation = () => (
     <div className="space-y-6">
