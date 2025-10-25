@@ -28,19 +28,40 @@ exports.createSubmission = async (req, res) => {
     });
 
     if (!application) {
+      console.error('❌ Application not found for student/project:', { projectId, studentId });
       return res.status(403).json({
         success: false,
         error: "You have not applied to this project",
+        debug: { projectId, studentId }
       });
     }
 
-    if (application.status !== "accepted" && 
-        application.status !== "in_progress" && 
-        application.status !== "changes_requested" &&
-        application.status !== "rejected") {
+    // Log application status for debugging
+    console.log('🔎 Application found:', {
+      _id: application._id,
+      status: application.status,
+      project: application.project,
+      student: application.student
+    });
+
+    // Allow resubmission for more statuses
+    const allowedStatuses = [
+      "accepted",
+      "in_progress",
+      "changes_requested",
+      "rejected",
+      "under_review",
+      "completed"
+    ];
+    if (!allowedStatuses.includes(application.status)) {
+      console.error('❌ Application status not allowed for submission:', {
+        status: application.status,
+        allowedStatuses
+      });
       return res.status(403).json({
         success: false,
         error: "Cannot submit work in current application status: " + application.status,
+        debug: { status: application.status, allowedStatuses }
       });
     }
 
