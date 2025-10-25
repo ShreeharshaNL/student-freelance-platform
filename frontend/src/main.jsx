@@ -3,6 +3,7 @@ import ReactDOM from "react-dom/client";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext.jsx";
 import { StudentRoute, ClientRoute, AuthenticatedRoute } from "./components/ProtectedRoute.jsx";
+import TermsAndConditions from "./pages/TernsAndConditions.jsx";
 import Home from "./pages/Home.jsx";
 import Login from "./pages/Login.jsx";
 import Signup from "./pages/Signup.jsx";
@@ -22,6 +23,7 @@ import ClientApplications from "./pages/ClientApplications.jsx";
 import ClientProjects from "./pages/ClientProjects.jsx";
 import ClientActive from "./pages/ClientActive.jsx";
 import ClientProfileView from "./pages/ClientProfileView.jsx";
+import PrivacyPolicy from "./pages/PrivacyPolicy.jsx";
 import "./index.css";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
@@ -33,6 +35,8 @@ ReactDOM.createRoot(document.getElementById("root")).render(
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
+          <Route path="/terms-and-conditions" element={<TermsAndConditions/>}/>
+          <Route path="/privacy-policy" element={<PrivacyPolicy />} />
           
           {/* Student Protected Routes */}
           <Route path="/student/dashboard" element={
