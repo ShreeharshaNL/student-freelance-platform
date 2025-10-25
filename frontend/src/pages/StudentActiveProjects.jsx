@@ -27,81 +27,91 @@ const StudentActiveProjects = () => {
   });
   const [submissions, setSubmissions] = useState({});
 
-  useEffect(() => {
-    const fetchActiveProjects = async () => {
-      try {
-        setLoading(true);
-        // Backend: GET /api/projects/my-applications returns applications for projects student applied to
-        const res = await projectsAPI.getMyApplications();
-        if (!res.data.success) {
-          setProjects([]);
-          return;
-        }
-
-        console.log('Raw API Response:', res.data);
-        const applications = res.data.data || [];
-        console.log('Applications:', applications);
-
-        // Build project list for active projects (accepted or in-progress)
-        console.log('Building active projects list from applications:', applications);
-        const active = applications
-          .filter(app => {
-            console.log('Checking application:', {
-              id: app._id,
-              projectId: app.project?._id,
-              projectTitle: app.project?.title,
-              status: app.status,
-              progress: app.progress
-            });
-            const appStatus = normalizeStatus(app.status);
-            console.log('Application status:', { 
-              raw: app.status, 
-              normalized: appStatus,
-              isActive: appStatus === 'in_progress'
-            });
-            return appStatus === 'in_progress';
-          })
-          .map(app => {
-            console.log('Processing active application:', app);
-            const proj = app.project || {};
-            console.log('Processing project data:', proj);
-            return {
-              id: proj._id,
-              _id: proj._id,
-              title: proj.title,
-              client: proj.user || proj.client || null, // Store the full client object
-              clientId: proj.user?._id || proj.client?._id, // Store client ID separately
-              budget: proj.budget || 0,
-              status: app.status,
-              progress: app.progress || 0,
-              deadline: proj.deadline,
-              startDate: app.appliedAt || app.createdAt || null,
-              description: proj.description || "",
-              milestones: [],
-              messages: 0,
-              lastUpdate: app.updatedAt || ""
-            };
-          });
-          
-        console.log('Processed active projects:', active);
-        setProjects(active);
-
-        setProjects(active);
-      } catch (err) {
-        console.error('Error fetching active projects:', err);
+  const fetchActiveProjects = async () => {
+    try {
+      setLoading(true);
+      // Backend: GET /api/projects/my-applications returns applications for projects student applied to
+      const res = await projectsAPI.getMyApplications();
+      if (!res.data.success) {
         setProjects([]);
-      } finally {
-        setLoading(false);
+        return;
       }
-    };
 
+      console.log('Raw API Response:', res.data);
+      const applications = res.data.data || [];
+      console.log('Applications count:', applications.length);
+      console.log('Applications:', applications.map(a => ({
+        id: a._id,
+        projectTitle: a.project?.title,
+        status: a.status,
+        normalized: normalizeStatus(a.status)
+      })));
+
+      // Build project list for active projects (in_progress, under_review, changes_requested, rejected, or completed)
+      console.log('Building active projects list from applications:', applications);
+      const active = applications
+        .filter(app => {
+          console.log('Checking application:', {
+            id: app._id,
+            projectId: app.project?._id,
+            projectTitle: app.project?.title,
+            status: app.status,
+            progress: app.progress
+          });
+          const appStatus = normalizeStatus(app.status);
+          console.log('Application status:', { 
+            raw: app.status, 
+            normalized: appStatus,
+            isActive: ['in_progress', 'accepted', 'under_review', 'changes_requested', 'rejected', 'completed'].includes(appStatus)
+          });
+          return ['in_progress', 'accepted', 'under_review', 'changes_requested', 'rejected', 'completed'].includes(appStatus);
+        })
+        .map(app => {
+          console.log('Processing active application:', app);
+          const proj = app.project || {};
+          console.log('Processing project data:', proj);
+          const appStatus = normalizeStatus(app.status);
+          // Set progress to 100 for under_review, changes_requested, rejected, and completed projects
+          const progress = ['under_review', 'changes_requested', 'rejected', 'completed'].includes(appStatus)
+            ? 100 
+            : (app.progress || 0);
+          
+          return {
+            id: proj._id,
+            _id: proj._id,
+            title: proj.title,
+            client: proj.user || proj.client || null, // Store the full client object
+            clientId: proj.user?._id || proj.client?._id, // Store client ID separately
+            budget: proj.budget || 0,
+            status: app.status,
+            progress: progress,
+            deadline: proj.deadline,
+            startDate: app.appliedAt || app.createdAt || null,
+            description: proj.description || "",
+            milestones: [],
+            messages: 0,
+            lastUpdate: app.updatedAt || ""
+          };
+        });
+        
+      console.log('Processed active projects:', active);
+      setProjects(active);
+    } catch (err) {
+      console.error('Error fetching active projects:', err);
+      setProjects([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchActiveProjects();
   }, []);
 
   const filters = [
     { id: "all", label: "All Projects", count: projects.length },
-    { id: "in_progress", label: "In Progress", count: projects.filter(p => normalizeStatus(p.status) === "in_progress").length },
-    { id: "under_review", label: "Under Review", count: projects.filter(p => normalizeStatus(p.status) === "under_review").length },
+    { id: "in_progress", label: "In Progress", count: projects.filter(p => ['in_progress', 'accepted'].includes(normalizeStatus(p.status))).length },
+    { id: "under_review", label: "Under Review", count: projects.filter(p => ['under_review', 'changes_requested', 'rejected'].includes(normalizeStatus(p.status))).length },
     { id: "completed", label: "Completed", count: projects.filter(p => normalizeStatus(p.status) === "completed").length }
   ];
 
@@ -110,6 +120,11 @@ const StudentActiveProjects = () => {
     : projects.filter(project => {
         const normalized = normalizeStatus(project.status);
         console.log('Filtering project:', { status: project.status, normalized, activeFilter });
+        // For under_review filter, include under_review, changes_requested, and rejected
+        if (activeFilter === "under_review") {
+          return ['under_review', 'changes_requested', 'rejected'].includes(normalized);
+        }
+        if (activeFilter === 'in_progress') return ['in_progress', 'accepted'].includes(normalized);
         return normalized === activeFilter;
       });
 
@@ -182,7 +197,7 @@ const StudentActiveProjects = () => {
                 <span className="text-xl">👁️</span>
               </div>
               <div>
-                <div className="text-2xl font-bold text-gray-900">{projects.filter(p => normalizeStatus(p.status) === 'under_review').length}</div>
+                <div className="text-2xl font-bold text-gray-900">{projects.filter(p => ['under_review', 'changes_requested', 'rejected'].includes(normalizeStatus(p.status))).length}</div>
                 <div className="text-sm text-gray-600">Under Review</div>
               </div>
             </div>
@@ -255,6 +270,30 @@ const StudentActiveProjects = () => {
                         </div>
                       </div>
 
+                      {/* Status-specific alerts */}
+                      {normalizeStatus(project.status) === "changes_requested" && (
+                        <div className="mb-4 bg-orange-50 border border-orange-200 rounded-lg p-3">
+                          <div className="flex items-start gap-2">
+                            <span className="text-orange-600 text-lg">⚠️</span>
+                            <div>
+                              <p className="font-medium text-orange-900">Changes Requested</p>
+                              <p className="text-sm text-orange-700">The client has requested changes. Please review the feedback and resubmit.</p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                      {normalizeStatus(project.status) === "rejected" && (
+                        <div className="mb-4 bg-red-50 border border-red-200 rounded-lg p-3">
+                          <div className="flex items-start gap-2">
+                            <span className="text-red-600 text-lg">❌</span>
+                            <div>
+                              <p className="font-medium text-red-900">Submission Rejected</p>
+                              <p className="text-sm text-red-700">Unfortunately, your submission was rejected. Please review the feedback.</p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
                       {/* Progress Bar */}
                       <div className="mb-4">
                         <div className="flex items-center justify-between mb-2">
@@ -273,8 +312,10 @@ const StudentActiveProjects = () => {
                           <span className="text-xs text-gray-500">{project.lastUpdate ? `Updated ${new Date(project.lastUpdate).toLocaleString()}` : ''}</span>
                         </div>
 
-                        {/* Submit Project button placed under progress bar to separate it from Update Progress */}
-                        {normalizeStatus(project.status) === "in_progress" && (
+                        {/* Submit/Resubmit Project button */}
+                        {(normalizeStatus(project.status) === "in_progress" || 
+                          normalizeStatus(project.status) === "changes_requested" || 
+                          normalizeStatus(project.status) === "rejected") && (
                           <div className="mt-3">
                             <button
                               onClick={() => setSubmitModal({
@@ -284,7 +325,7 @@ const StudentActiveProjects = () => {
                               })}
                               className="px-3 py-1 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm"
                             >
-                              📤 Submit Project
+                              📤 {normalizeStatus(project.status) === "in_progress" ? "Submit Project" : "Resubmit Project"}
                             </button>
                           </div>
                         )}
@@ -338,7 +379,7 @@ const StudentActiveProjects = () => {
                       >
                         Message Client
                       </button>
-                      {normalizeStatus(project.status) === "in_progress" && (
+                      {['in_progress','accepted'].includes(normalizeStatus(project.status)) && (
                         <button
                           className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm"
                           onClick={async () => {
@@ -376,12 +417,13 @@ const StudentActiveProjects = () => {
                       {normalizeStatus(project.status) === "completed" && project.clientId && (
                         <button
                           onClick={() => {
-                            console.log("Review button clicked", { projectId: project.id, clientId: project.clientId, clientName: project.client });
+                            const clientName = project.client?.name || 'Client';
+                            console.log("Review button clicked", { projectId: project.id, clientId: project.clientId, clientName });
                             setReviewModal({
                               isOpen: true,
                               projectId: project.id,
                               revieweeId: project.clientId,
-                              revieweeName: project.client,
+                              revieweeName: clientName,
                             });
                           }}
                           className="px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-colors text-sm"
@@ -501,9 +543,17 @@ const StudentActiveProjects = () => {
         onClose={() => setSubmitModal({ isOpen: false, projectId: null, projectTitle: "" })}
         projectId={submitModal.projectId}
         projectTitle={submitModal.projectTitle}
-        onSuccess={() => {
-          alert("Project submitted for review!");
-          window.location.reload();
+        onSuccess={async () => {
+          console.log('✅ Submission successful! Waiting 1 second before refetching...');
+          alert("Project submitted for review! Check the 'Under Review' tab.");
+          
+          // Wait for backend to update, then refetch
+          setTimeout(async () => {
+            console.log('🔄 Refetching projects...');
+            await fetchActiveProjects();
+            console.log('✅ Projects refetched, switching to under_review tab');
+            setActiveFilter("under_review"); // Switch to under_review tab
+          }, 1000);
         }}
       />
 

@@ -136,15 +136,35 @@ exports.getMyReviews = async (req, res) => {
     const userId = req.user._id;
     const { type = "received" } = req.query;
 
+    console.log('🔍 getMyReviews called:', { 
+      userId: userId.toString(),
+      type,
+      userRole: req.user.role 
+    });
+
     const query = type === "received" 
       ? { reviewee: userId } 
       : { reviewer: userId };
+    
+    console.log('🔍 Using query:', query);
 
     const reviews = await Review.find(query)
       .sort({ createdAt: -1 })
       .populate("reviewer", "name email role")
       .populate("reviewee", "name email role")
       .populate("project", "title");
+
+    console.log('📦 Found reviews:', {
+      count: reviews.length,
+      reviews: reviews.map(r => ({
+        id: r._id,
+        reviewer: r.reviewer?.name,
+        reviewee: r.reviewee?.name,
+        rating: r.rating,
+        project: r.project?.title,
+        createdAt: r.createdAt
+      }))
+    });
 
     res.status(200).json({
       success: true,

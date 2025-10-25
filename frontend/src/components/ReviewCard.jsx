@@ -67,48 +67,48 @@ const ReviewCard = ({ review, currentUserId, onUpdate }) => {
 
       <p className="text-gray-700 leading-relaxed">{review.comment}</p>
 
-      {review.categories && Object.values(review.categories).some(v => v > 0) && (
+      {review.categories && (
         <div className="grid grid-cols-2 gap-3 pt-3 border-t border-gray-100">
-          {review.categories.communication > 0 && (
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-gray-600">Communication</span>
-              <div className="flex gap-0.5">
-                {[...Array(review.categories.communication)].map((_, i) => (
-                  <span key={i} className="text-yellow-500 text-xs">⭐</span>
-                ))}
-              </div>
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-gray-600">Communication</span>
+            <div className="flex gap-0.5">
+              {[1,2,3,4,5].map((star) => (
+                <span key={star} className={`text-xs ${star <= (review.categories.communication || 0) ? "text-yellow-500" : "text-gray-300"}`}>
+                  {star <= (review.categories.communication || 0) ? "⭐" : "☆"}
+                </span>
+              ))}
             </div>
-          )}
-          {review.categories.quality > 0 && (
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-gray-600">Quality</span>
-              <div className="flex gap-0.5">
-                {[...Array(review.categories.quality)].map((_, i) => (
-                  <span key={i} className="text-yellow-500 text-xs">⭐</span>
-                ))}
-              </div>
+          </div>
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-gray-600">Quality</span>
+            <div className="flex gap-0.5">
+              {[1,2,3,4,5].map((star) => (
+                <span key={star} className={`text-xs ${star <= (review.categories.quality || 0) ? "text-yellow-500" : "text-gray-300"}`}>
+                  {star <= (review.categories.quality || 0) ? "⭐" : "☆"}
+                </span>
+              ))}
             </div>
-          )}
-          {review.categories.professionalism > 0 && (
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-gray-600">Professionalism</span>
-              <div className="flex gap-0.5">
-                {[...Array(review.categories.professionalism)].map((_, i) => (
-                  <span key={i} className="text-yellow-500 text-xs">⭐</span>
-                ))}
-              </div>
+          </div>
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-gray-600">Professionalism</span>
+            <div className="flex gap-0.5">
+              {[1,2,3,4,5].map((star) => (
+                <span key={star} className={`text-xs ${star <= (review.categories.professionalism || 0) ? "text-yellow-500" : "text-gray-300"}`}>
+                  {star <= (review.categories.professionalism || 0) ? "⭐" : "☆"}
+                </span>
+              ))}
             </div>
-          )}
-          {review.categories.timeliness > 0 && (
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-gray-600">Timeliness</span>
-              <div className="flex gap-0.5">
-                {[...Array(review.categories.timeliness)].map((_, i) => (
-                  <span key={i} className="text-yellow-500 text-xs">⭐</span>
-                ))}
-              </div>
+          </div>
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-gray-600">Timeliness</span>
+            <div className="flex gap-0.5">
+              {[1,2,3,4,5].map((star) => (
+                <span key={star} className={`text-xs ${star <= (review.categories.timeliness || 0) ? "text-yellow-500" : "text-gray-300"}`}>
+                  {star <= (review.categories.timeliness || 0) ? "⭐" : "☆"}
+                </span>
+              ))}
             </div>
-          )}
+          </div>
         </div>
       )}
 

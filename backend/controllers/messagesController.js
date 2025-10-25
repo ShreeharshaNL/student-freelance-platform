@@ -13,9 +13,16 @@ const buildKey = (a, b) => {
 exports.createOrGetConversation = async (req, res) => {
   try {
     const { userId } = req.body;
+    console.log('createOrGetConversation called', { userId, requester: req.user && req.user._id });
     if (!userId) {
       return res.status(400).json({ success: false, error: "userId is required" });
     }
+    // Validate userId is a valid ObjectId string
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      console.error('Invalid userId provided to createOrGetConversation:', userId);
+      return res.status(400).json({ success: false, error: "Invalid userId" });
+    }
+
     if (userId === req.user._id.toString()) {
       return res.status(400).json({ success: false, error: "Cannot create conversation with yourself" });
     }

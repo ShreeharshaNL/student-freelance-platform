@@ -34,10 +34,13 @@ exports.createSubmission = async (req, res) => {
       });
     }
 
-    if (application.status !== "accepted" && application.status !== "in_progress") {
+    if (application.status !== "accepted" && 
+        application.status !== "in_progress" && 
+        application.status !== "changes_requested" &&
+        application.status !== "rejected") {
       return res.status(403).json({
         success: false,
-        error: "Your application must be accepted before you can submit work",
+        error: "Cannot submit work in current application status: " + application.status,
       });
     }
 
@@ -46,6 +49,13 @@ exports.createSubmission = async (req, res) => {
       .limit(1);
 
     const version = latestSubmission ? latestSubmission.version + 1 : 1;
+
+    console.log('Creating submission:', {
+      projectId,
+      studentId,
+      currentAppStatus: application.status,
+      isResubmission: version > 1
+    });
 
     const submission = await Submission.create({
       project: projectId,
@@ -65,13 +75,33 @@ exports.createSubmission = async (req, res) => {
       { path: "project", select: "title budget" },
     ]);
 
-    await Project.findByIdAndUpdate(projectId, {
-      status: "under_review",
+    console.log('Updating project status to under_review:', projectId);
+    const updatedProject = await Project.findByIdAndUpdate(
+      projectId,
+      { status: "under_review" },
+      { new: true }
+    );
+    console.log('Project updated:', { _id: updatedProject._id, status: updatedProject.status });
+
+    // Update application status to under_review
+    console.log('Updating application status to under_review:', { projectId, studentId });
+    const updatedApp = await Application.findOneAndUpdate(
+      { project: projectId, student: studentId },
+      { status: "under_review" },
+      { new: true }
+    );
+    console.log('Application updated:', { 
+      _id: updatedApp?._id, 
+      status: updatedApp?.status, 
+      project: updatedApp?.project,
+      student: updatedApp?.student 
     });
 
     res.status(201).json({
       success: true,
       data: submission,
+      message: 'Submission created and application status updated to under_review',
+      applicationStatus: updatedApp?.status
     });
   } catch (err) {
     console.error("Error creating submission:", err);
@@ -183,8 +213,22 @@ exports.reviewSubmission = async (req, res) => {
         createdBy: clientId,
       };
 
-      await Project.findByIdAndUpdate(submission.project, {
-        status: "open",
+      const updatedProject = await Project.findByIdAndUpdate(
+        submission.project,
+        { status: "in_progress" },
+        { new: true }
+      );
+      console.log('Project updated to in_progress:', { _id: updatedProject._id, status: updatedProject.status });
+
+      // Update application to changes_requested status
+      const updatedApp = await Application.findOneAndUpdate(
+        { project: submission.project, student: submission.student },
+        { status: "changes_requested" },
+        { new: true }
+      );
+      console.log('Application updated to changes_requested:', { 
+        _id: updatedApp?._id, 
+        status: updatedApp?.status 
       });
     } else if (action === "reject") {
       submission.status = "rejected";
@@ -193,6 +237,24 @@ exports.reviewSubmission = async (req, res) => {
         createdAt: new Date(),
         createdBy: clientId,
       };
+
+      const updatedProject = await Project.findByIdAndUpdate(
+        submission.project,
+        { status: "in_progress" },
+        { new: true }
+      );
+      console.log('Project updated to in_progress:', { _id: updatedProject._id, status: updatedProject.status });
+
+      // Update application to rejected status
+      const updatedApp = await Application.findOneAndUpdate(
+        { project: submission.project, student: submission.student },
+        { status: "rejected" },
+        { new: true }
+      );
+      console.log('Application updated to rejected:', { 
+        _id: updatedApp?._id, 
+        status: updatedApp?.status 
+      });
     }
 
     await submission.save();

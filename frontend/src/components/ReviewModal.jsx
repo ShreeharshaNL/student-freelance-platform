@@ -36,7 +36,12 @@ const ReviewModal = ({ isOpen, onClose, projectId, revieweeId, revieweeName, onS
         revieweeId,
         rating,
         comment: comment.trim(),
-        categories: Object.values(categories).some(v => v > 0) ? categories : undefined,
+        categories: {
+          communication: categories.communication || 0,
+          quality: categories.quality || 0,
+          professionalism: categories.professionalism || 0,
+          timeliness: categories.timeliness || 0
+        },
       });
 
       if (onSuccess) onSuccess();
