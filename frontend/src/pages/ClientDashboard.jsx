@@ -9,6 +9,7 @@ import { profileAPI } from "../utils/profileAPI";
 import { projectsAPI } from "../utils/projectsAPI";
 import { applicationsAPI } from "../utils/applicationsAPI";
 
+
 const ClientDashboard = () => {
   const { user } = useAuth();
   const [profile, setProfile] = useState(null);

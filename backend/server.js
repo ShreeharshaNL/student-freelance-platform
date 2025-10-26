@@ -30,6 +30,7 @@ app.use('/api/projects', require('./routes/projectRoutes')); // Project routes s
 app.use('/api/applications', require('./routes/applicationRoutes')); // Updated path to be more RESTful
 app.use('/api/reviews', require('./routes/reviewRoutes'));
 app.use('/api/submissions', require('./routes/submissionRoutes'));
+app.use("/api/chatbot", require("./routes/chatbotRoutes"));
 
 
 // Default route
