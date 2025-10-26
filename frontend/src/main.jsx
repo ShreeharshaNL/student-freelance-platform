@@ -3,6 +3,8 @@ import ReactDOM from "react-dom/client";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext.jsx";
 import { StudentRoute, ClientRoute, AuthenticatedRoute } from "./components/ProtectedRoute.jsx";
+import Chatbot from "./components/Chatbot.jsx";
+
 import TermsAndConditions from "./pages/TernsAndConditions.jsx";
 import Home from "./pages/Home.jsx";
 import Login from "./pages/Login.jsx";
@@ -37,7 +39,6 @@ ReactDOM.createRoot(document.getElementById("root")).render(
           <Route path="/signup" element={<Signup />} />
           <Route path="/terms-and-conditions" element={<TermsAndConditions/>}/>
           <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-          
           {/* Student Protected Routes */}
           <Route path="/student/dashboard" element={
             <StudentRoute>
@@ -129,6 +130,7 @@ ReactDOM.createRoot(document.getElementById("root")).render(
             </AuthenticatedRoute>
           } />
         </Routes>
+        <Chatbot/>
       </AuthProvider>
     </BrowserRouter>
   </React.StrictMode>

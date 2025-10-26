@@ -4,6 +4,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { profileAPI } from "../utils/profileAPI";
 
+
 const DashboardLayout = ({ children, userType = "student" }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [profile, setProfile] = useState(null);
