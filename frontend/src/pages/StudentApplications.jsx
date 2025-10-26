@@ -112,9 +112,7 @@ const StudentApplications = () => {
             <h1 className="text-2xl font-bold text-gray-900">My Applications</h1>
             <p className="text-gray-600 mt-1">Track all your project applications and their status</p>
           </div>
-          <button className="mt-4 sm:mt-0 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">
-            Browse New Projects
-          </button>
+          
         </div>
 
         {/* Stats Overview */}
