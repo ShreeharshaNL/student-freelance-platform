@@ -1,3 +1,4 @@
+//applicationsAPI.js
 import API from './api';
 
 export const applicationsAPI = {
@@ -92,6 +93,18 @@ export const applicationsAPI = {
             return response;
         } catch (error) {
             console.error('Delete application error:', error);
+            throw error;
+        }
+    },
+
+    // Get all applications for client's projects
+    getApplicationsForMyProjects: async () => {
+        try {
+            const response = await API.get('/applications/my-projects-applications');
+            console.log('Get applications for my projects response:', response);
+            return response;
+        } catch (error) {
+            console.error('Get applications for my projects error:', error);
             throw error;
         }
     }

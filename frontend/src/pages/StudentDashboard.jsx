@@ -8,6 +8,7 @@ import { useAuth } from "../context/AuthContext";
 import { profileAPI } from "../utils/profileAPI";
 import { projectsAPI } from "../utils/projectsAPI";
 
+
 const StudentDashboard = () => {
   const { user } = useAuth();
   const [profile, setProfile] = useState(null);
@@ -19,7 +20,7 @@ const StudentDashboard = () => {
     fetchDashboardData();
   }, []);
 
-  const fetchDashboardData = async () => {
+const fetchDashboardData = async () => {
     try {
       setLoading(true);
       setError(null);
@@ -27,15 +28,22 @@ const StudentDashboard = () => {
       // Fetch profile data
       const profileResponse = await profileAPI.getProfile();
       console.log('Profile response:', profileResponse);
-      if (profileResponse.success) {
-        setProfile(profileResponse.data);
+      
+      // Profile API returns {success: true, data: {...}}
+      if (profileResponse.success || profileResponse.data) {
+        setProfile(profileResponse.data || profileResponse);
       }
 
       // Fetch applications
       const applicationsResponse = await projectsAPI.getMyApplications();
       console.log('Applications response:', applicationsResponse);
-      if (applicationsResponse.success) {
+      console.log('Applications data:', applicationsResponse.data);
+      
+      // Axios returns {data: {...}, status: 200}
+      // Your backend returns {success: true, data: [...]}
+      if (applicationsResponse.data) {
         const appData = applicationsResponse.data.data || applicationsResponse.data || [];
+        console.log('Parsed applications:', appData);
         setApplications(Array.isArray(appData) ? appData : []);
       }
     } catch (err) {
@@ -47,12 +55,37 @@ const StudentDashboard = () => {
   };
 
   // Calculate stats from real data
-  const calculateStats = () => {
-    const totalEarnings = profile?.totalEarnings || 0;
-    const monthlyEarnings = profile?.monthlyEarnings || 0;
-    const activeApplicationsCount = applications.filter(app => app.status === 'pending').length;
-    const acceptedApplicationsCount = applications.filter(app => app.status === 'accepted').length;
+const calculateStats = () => {
+    // Get real counts from applications
+    const pendingApplicationsCount = applications.filter(app => app.status === 'pending').length;
+    const inProgressCount = applications.filter(app => app.status === 'in_progress').length;
+    const completedCount = applications.filter(app => app.status === 'completed').length;
+    
+    // Active projects = in_progress applications
+    const activeProjectsCount = inProgressCount;
+    
+    console.log('Pending count:', pendingApplicationsCount);
+    console.log('In Progress count:', inProgressCount);
+    console.log('Completed count:', completedCount);
+    
+    // Calculate earnings from completed and in_progress applications
+    const totalEarnings = applications
+      .filter(app => app.status === 'completed' || app.status === 'in_progress')
+      .reduce((sum, app) => sum + (app.proposedBudget || 0), 0);
+    
+    // Calculate monthly earnings (last 30 days)
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    
+    const monthlyEarnings = applications
+      .filter(app => {
+        const appDate = new Date(app.appliedAt || app.createdAt || app.updatedAt);
+        return (app.status === 'completed' || app.status === 'in_progress') && appDate >= thirtyDaysAgo;
+      })
+      .reduce((sum, app) => sum + (app.proposedBudget || 0), 0);
+
     const rating = profile?.rating || 0;
+    const completedProjects = completedCount;
 
     return [
       {
@@ -60,36 +93,35 @@ const StudentDashboard = () => {
         title: "Total Earnings",
         value: `₹${totalEarnings.toLocaleString()}`,
         subtitle: `This month: ₹${monthlyEarnings.toLocaleString()}`,
-        trend: "+18%",
-        trendDirection: "up"
+        trend: monthlyEarnings > 0 ? "+18%" : "0%",
+        trendDirection: monthlyEarnings > 0 ? "up" : "neutral"
       },
       {
         icon: "📝",
         title: "Active Applications",
-        value: activeApplicationsCount.toString(),
+        value: pendingApplicationsCount.toString(),
         subtitle: "Waiting for response",
-        trend: `+${activeApplicationsCount}`,
-        trendDirection: "up"
+        trend: pendingApplicationsCount > 0 ? `${pendingApplicationsCount} pending` : "No pending",
+        trendDirection: "neutral"
       },
       {
         icon: "⚡",
         title: "Active Projects",
-        value: acceptedApplicationsCount.toString(),
+        value: activeProjectsCount.toString(),
         subtitle: "In progress",
-        trend: acceptedApplicationsCount > 0 ? "Active" : "None",
-        trendDirection: "up"
+        trend: activeProjectsCount > 0 ? `${activeProjectsCount} active` : "None",
+        trendDirection: activeProjectsCount > 0 ? "up" : "neutral"
       },
       {
         icon: "⭐",
         title: "Rating",
         value: rating > 0 ? rating.toFixed(1) : "0.0",
-        subtitle: `Based on ${profile?.completedProjects || 0} projects`,
-        trend: "+0.3",
-        trendDirection: "up"
+        subtitle: `Based on ${completedProjects} projects`,
+        trend: rating > 0 ? "+0.3" : "New",
+        trendDirection: "neutral"
       }
     ];
   };
-
   // Calculate profile completion percentage
   const calculateProfileCompletion = () => {
     if (!profile) return 0;
@@ -415,3 +447,4 @@ const StudentDashboard = () => {
 };
 
 export default StudentDashboard;
+
