@@ -31,6 +31,7 @@ app.use('/api/applications', require('./routes/applicationRoutes')); // Updated 
 app.use('/api/reviews', require('./routes/reviewRoutes'));
 app.use('/api/submissions', require('./routes/submissionRoutes'));
 
+
 // Default route
 app.get("/", (req, res) => {
   res.send("API is running...");

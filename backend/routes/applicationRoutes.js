@@ -6,7 +6,8 @@ const {
     getProjectApplications,
     getMyApplications,
     updateApplicationStatus,
-    deleteApplication
+    deleteApplication,
+    getApplicationsForMyProjects
 } = require('../controllers/applicationController');
 
 // Routes for all applications
@@ -17,5 +18,8 @@ router.delete('/:applicationId', protect, deleteApplication); // Delete applicat
 
 // Route for getting student's own applications
 router.get('/me', protect, getMyApplications); // Get student's applications
+
+// Route for getting client's project applications
+router.get('/my-projects-applications', protect, getApplicationsForMyProjects); // Get all applications for client's projects
 
 module.exports = router;

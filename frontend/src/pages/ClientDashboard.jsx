@@ -42,30 +42,23 @@ const ClientDashboard = () => {
       }
 
       // Fetch applications for client's projects
-      const applicationsResponse = await applicationsAPI.getMyProjects();
+      const applicationsResponse = await applicationsAPI.getApplicationsForMyProjects();
       console.log('Applications response:', applicationsResponse);
       if (applicationsResponse.success) {
-        const allApplications = [];
-        const projectsData = applicationsResponse.data.data || [];
-        projectsData.forEach(project => {
-          if (Array.isArray(project.applications)) {
-            project.applications.forEach(app => {
-              allApplications.push({
-                id: app._id,
-                projectId: project._id,
-                projectTitle: project.title,
-                studentName: app.student?.name || "Unknown",
-                studentId: app.student?._id,
-                studentRating: app.student?.rating || 0,
-                appliedDate: new Date(app.createdAt).toLocaleDateString(),
-                proposedBudget: `₹${app.proposedBudget}`,
-                studentSkills: app.student?.skills || [],
-                status: app.status
-              });
-            });
-          }
-        });
-        setApplications(allApplications);
+        const applicationsData = applicationsResponse.data.data || applicationsResponse.data || [];
+        const formattedApplications = applicationsData.map(app => ({
+          id: app._id,
+          projectId: app.project?._id,
+          projectTitle: app.project?.title || "Unknown Project",
+          studentName: app.student?.name || "Unknown",
+          studentId: app.student?._id,
+          studentRating: app.student?.rating || 0,
+          appliedDate: new Date(app.createdAt).toLocaleDateString(),
+          proposedBudget: `₹${app.proposedBudget || 0}`,
+          studentSkills: app.student?.skills || [],
+          status: app.status
+        }));
+        setApplications(formattedApplications);
       }
     } catch (err) {
       console.error('Error fetching dashboard data:', err);
