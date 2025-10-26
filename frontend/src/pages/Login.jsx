@@ -10,7 +10,7 @@ export default function Login() {
   const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
- const { login, isAuthenticated, user, loading } = useAuth();
+  const { login, isAuthenticated, user, loading } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -47,6 +47,14 @@ export default function Login() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 via-white to-purple-50">
       <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md">
+        <div className="mb-4">
+          <button
+            onClick={() => navigate("/")}
+            className="text-sm text-gray-500 hover:text-indigo-600 transition-colors"
+          >
+            ← Back to Home
+          </button>
+        </div>
         <div className="text-center mb-8">
           <h2 className="text-3xl font-bold text-gray-800">Welcome Back</h2>
           <p className="text-gray-600 mt-2">Login to your account</p>
@@ -145,6 +153,7 @@ export default function Login() {
               "Login"
             )}
           </button>
+
         </form>
 
         <div className="mt-6 text-center">
@@ -155,6 +164,7 @@ export default function Login() {
             </Link>
           </p>
         </div>
+
       </div>
     </div>
   );
