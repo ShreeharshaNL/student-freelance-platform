@@ -29,23 +29,32 @@ const ClientDashboard = () => {
       // Fetch profile data
       const profileResponse = await profileAPI.getProfile();
       console.log('Profile response:', profileResponse);
-      if (profileResponse.success) {
-        setProfile(profileResponse.data);
+      if (profileResponse.success || profileResponse.data) {
+        setProfile(profileResponse.data || profileResponse);
       }
 
       // Fetch client's projects
       const projectsResponse = await projectsAPI.getMyProjects();
       console.log('Projects response:', projectsResponse);
-      if (projectsResponse.success) {
+      console.log('Projects data:', projectsResponse.data);
+      
+      // Handle Axios response structure
+      if (projectsResponse.data) {
         const projectsData = projectsResponse.data.data || projectsResponse.data || [];
+        console.log('Parsed projects:', projectsData);
         setProjects(Array.isArray(projectsData) ? projectsData : []);
       }
 
       // Fetch applications for client's projects
       const applicationsResponse = await applicationsAPI.getApplicationsForMyProjects();
       console.log('Applications response:', applicationsResponse);
-      if (applicationsResponse.success) {
+      console.log('Applications data:', applicationsResponse.data);
+      
+      // Handle Axios response structure
+      if (applicationsResponse.data) {
         const applicationsData = applicationsResponse.data.data || applicationsResponse.data || [];
+        console.log('Parsed applications:', applicationsData);
+        
         const formattedApplications = applicationsData.map(app => ({
           id: app._id,
           projectId: app.project?._id,
@@ -75,7 +84,7 @@ const ClientDashboard = () => {
     const totalApplications = applications.length;
     const pendingApplications = applications.filter(a => a.status === 'pending').length;
     const totalSpent = projects.reduce((sum, p) => sum + (p.budget || 0), 0);
-    const avgRating = profile?.avgRatingGiven || 0;
+     const avgRating = profile?.avgRatingGiven || profile?.rating || 0;
 
     return [
       {
