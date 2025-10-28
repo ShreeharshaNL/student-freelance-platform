@@ -3,6 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import DashboardLayout from '../components/DashboardLayout';
 import { projectsAPI } from '../utils/projectsAPI';
 import ReviewModal from '../components/ReviewModal';
+import ReviewSubmissionModal from '../components/ReviewSubmissionModal';
+import { submissionsAPI } from '../utils/submissionsAPI';
+import { normalizeStatus } from '../utils/status';
 
 const ClientProjects = () => {
   const [projects, setProjects] = useState([]);
@@ -18,6 +21,12 @@ const ClientProjects = () => {
     projectId: null,
     revieweeId: null,
     revieweeName: "",
+  });
+  const [pendingSubmissionProjectIds, setPendingSubmissionProjectIds] = useState(new Set());
+  const [pendingSubmissions, setPendingSubmissions] = useState([]);
+  const [reviewSubmissionModal, setReviewSubmissionModal] = useState({
+    isOpen: false,
+    submission: null,
   });
   const navigate = useNavigate();
 
@@ -41,7 +50,27 @@ const ClientProjects = () => {
 
   useEffect(() => {
     fetchProjects();
+    fetchPendingSubmissions();
   }, []);
+
+  const fetchPendingSubmissions = async () => {
+    try {
+      const res = await submissionsAPI.getMySubmissions();
+      // handle different response shapes
+      const success = res?.success ?? res?.data?.success ?? false;
+      const data = res?.data ?? res;
+      const list = Array.isArray(data) ? data : (Array.isArray(data?.data) ? data.data : []);
+      const pending = list || [];
+      // filter submissions under review
+      const pendingUnderReview = pending.filter(s => normalizeStatus(s.status) === 'under_review');
+      setPendingSubmissions(pendingUnderReview);
+      // collect project ids that have submissions under review
+      const ids = new Set(pendingUnderReview.map(s => s.project?._id || s.project));
+      setPendingSubmissionProjectIds(ids);
+    } catch (err) {
+      console.error('Error fetching pending submissions:', err);
+    }
+  };
 
   const fetchProjects = async () => {
     try {
@@ -522,7 +551,8 @@ const ClientProjects = () => {
               { id: 'all', label: 'All Projects', count: projects.length },
               { id: 'open', label: 'Open', count: projects.filter(p => p.status === 'open').length },
               { id: 'in-progress', label: 'In Progress', count: projects.filter(p => p.status === 'in-progress').length },
-              { id: 'under-review', label: 'Under Review', count: projects.filter(p => p.status === 'under-review').length },
+              // Under Review should include projects that either have status 'under-review' or have a pending submission
+              { id: 'under-review', label: 'Under Review', count: projects.filter(p => normalizeStatus(p.status) === 'under_review' || pendingSubmissionProjectIds.has(p._id)).length },
               { id: 'completed', label: 'Completed', count: projects.filter(p => p.status === 'completed').length }
             ].map((filter) => (
               <button
@@ -547,9 +577,19 @@ const ClientProjects = () => {
           </div>
 
           {/* Projects List */}
-          {(filterStatus === 'all' ? projects : projects.filter(p => p.status === filterStatus)).length > 0 ? (
+          {(filterStatus === 'all' ? projects : projects.filter(p => {
+            if (filterStatus === 'under-review') {
+              return normalizeStatus(p.status) === 'under_review' || pendingSubmissionProjectIds.has(p._id);
+            }
+            return p.status === filterStatus;
+          })).length > 0 ? (
             <div className="divide-y">
-              {(filterStatus === 'all' ? projects : projects.filter(p => p.status === filterStatus)).map((project) => {
+              {(filterStatus === 'all' ? projects : projects.filter(p => {
+                if (filterStatus === 'under-review') {
+                  return normalizeStatus(p.status) === 'under_review' || pendingSubmissionProjectIds.has(p._id);
+                }
+                return p.status === filterStatus;
+              })).map((project) => {
                 // Find accepted application to get student info
                 const acceptedApp = project.applications?.find(app => app.status === 'accepted' || app.status === 'in_progress');
                 
@@ -563,6 +603,12 @@ const ClientProjects = () => {
                       <div className="flex items-center gap-3 mb-2">
                         <h3 className="text-lg font-semibold text-gray-900">{project.title}</h3>
                         {getStatusBadge(project.status)}
+                        {/* Show under-review badge when project has a pending submission */}
+                        {(normalizeStatus(project.status) === 'under_review' || pendingSubmissionProjectIds.has(project._id)) && (
+                          <span className="px-2 py-1 ml-2 inline-block bg-yellow-100 text-yellow-800 rounded-full text-xs font-medium">
+                            🔍 Under Review
+                          </span>
+                        )}
                         {project.isUrgent && (
                           <span className="px-2 py-1 bg-red-100 text-red-800 rounded-full text-xs font-medium">
                             Urgent
@@ -636,6 +682,26 @@ const ClientProjects = () => {
                           ⭐ Leave Review
                         </button>
                       )}
+                      {/* If there is a pending submission for this project, allow reviewing it */}
+                      {pendingSubmissions && pendingSubmissions.length > 0 && (
+                        (() => {
+                          const pendingForProject = pendingSubmissions.find(s => (s.project?._id || s.project) === project._id);
+                          if (pendingForProject) {
+                            return (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setReviewSubmissionModal({ isOpen: true, submission: pendingForProject });
+                                }}
+                                className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm"
+                              >
+                                Review Now
+                              </button>
+                            );
+                          }
+                          return null;
+                        })()
+                      )}
                     </div>
                   </div>
                 </div>
@@ -705,6 +771,19 @@ const ClientProjects = () => {
           onSuccess={() => {
             alert("Review submitted successfully!");
             fetchProjects();
+          }}
+        />
+
+        {/* Review Submission Modal for pending submissions */}
+        <ReviewSubmissionModal
+          isOpen={reviewSubmissionModal.isOpen}
+          onClose={() => setReviewSubmissionModal({ isOpen: false, submission: null })}
+          submission={reviewSubmissionModal.submission}
+          onSuccess={() => {
+            alert("Review submitted!");
+            fetchPendingSubmissions();
+            fetchProjects();
+            setReviewSubmissionModal({ isOpen: false, submission: null });
           }}
         />
       </div>

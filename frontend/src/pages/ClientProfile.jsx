@@ -1,7 +1,9 @@
 import React, { useEffect, useMemo, useState, memo } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import DashboardLayout from "../components/DashboardLayout";
 import ProjectCard from "../components/ProjectCard";
 import api from "../utils/api";
+import { projectsAPI } from "../utils/projectsAPI";
 import { useAuth } from "../context/AuthContext";
 import { reviewsAPI } from "../utils/reviewsAPI";
 import ReviewCard from "../components/ReviewCard";
@@ -369,23 +371,85 @@ export default function ClientProfile() {
     [saving, editMode]
   );
 
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const res = await api.get("/profile");
-        if (res.data?.success) {
-          const data = { ...emptyProfile, ...(res.data?.data || {}) };
-          setProfile(data);
-          setDraft(data);
+  const location = useLocation();
+
+  const loadProfile = async () => {
+    setLoading(true);
+    try {
+      const res = await api.get("/profile");
+      if (res.data?.success) {
+        const data = { ...emptyProfile, ...(res.data?.data || {}) };
+        // try to fetch posted projects directly to ensure latest projects are shown
+        try {
+          // Prefer fetching projects with applications so we can build hired history
+          let projectsRes;
+          try {
+            projectsRes = await projectsAPI.getMyProjectsWithApplications();
+          } catch (e) {
+            // fallback to plain projects endpoint if the specialized route isn't available
+            projectsRes = await projectsAPI.getMyProjects();
+          }
+          const projectsList = projectsRes?.data?.data || projectsRes?.data || [];
+          data.postedProjects = projectsList;
+          data.projectsPosted = projectsList.length;
+
+          // Build hiredHistory from applications present on projects
+          const hiredEntries = [];
+          const hiredStudentIds = new Set();
+          (projectsList || []).forEach((project) => {
+            const apps = project.applications || [];
+            apps.forEach((app) => {
+              const status = app.status || '';
+              if (status === 'accepted' || status === 'completed') {
+                hiredStudentIds.add(app.student?._id || app.student);
+                hiredEntries.push({
+                  _id: app._id,
+                  studentId: app.student?._id || app.student,
+                  studentName: app.student?.name || app.student?.studentName || (app.student || '') ,
+                  project: project.title || '',
+                  projectId: project._id,
+                  completedDate: app.completionDate || app.updatedAt || project.updatedAt,
+                  amount: app.proposedBudget || 0,
+                  feedback: app.feedback || ''
+                });
+              }
+            });
+          });
+
+          data.hiredHistory = hiredEntries;
+          data.hiredStudents = hiredStudentIds.size;
+        } catch (projErr) {
+          console.warn('Could not fetch posted projects directly:', projErr);
         }
-      } catch (err) {
-        console.error("load profile:", err);
-      } finally {
-        setLoading(false);
+
+        setProfile(data);
+        setDraft(data);
       }
-    };
-    load();
+    } catch (err) {
+      console.error("load profile:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadProfile();
   }, [token]);
+
+  const navigate = useNavigate();
+
+  // If navigated with a request to refresh the profile (e.g., after posting a project), reload
+  useEffect(() => {
+    if (location?.state?.refreshProfile) {
+      loadProfile();
+      // clear the state so repeated navigations don't retrigger
+      try {
+        window.history.replaceState({ ...(location.state || {}), refreshProfile: false }, "");
+      } catch (e) {
+        // ignore
+      }
+    }
+  }, [location?.state]);
 
   useEffect(() => {
     if (user?._id) {
@@ -399,23 +463,30 @@ export default function ClientProfile() {
         console.log('🔍 Fetching reviews for user:', user._id);
         // Use getMyReviews instead to get received reviews for the logged-in user
         const response = await reviewsAPI.getMyReviews('received');
-        console.log('📦 Full response:', JSON.stringify(response, null, 2));
-        console.log('📦 Response structure:', {
-          hasSuccess: 'success' in response,
-          successValue: response.success,
-          hasData: 'data' in response,
-          dataType: typeof response.data,
-          dataIsArray: Array.isArray(response.data)
-        });
-        
-        if (response.success) {
-          const reviewsList = response.data || [];
-          console.log('✅ Reviews found:', reviewsList.length);
-          console.log('✅ First review:', reviewsList[0]);
-          setReviews(reviewsList);
+        console.log('📦 Full response (reviews):', response);
+
+        // Normalize response shapes: reviewsAPI may return { success, data: [...] }
+        // or an array directly in some implementations. Handle both.
+        let reviewsList = [];
+        if (!response) {
+          reviewsList = [];
+        } else if (Array.isArray(response)) {
+          reviewsList = response;
+        } else if (Array.isArray(response.data)) {
+          reviewsList = response.data;
+        } else if (Array.isArray(response.data?.data)) {
+          reviewsList = response.data.data;
+        } else if (response.success && Array.isArray(response.data)) {
+          reviewsList = response.data;
+        } else if (response.success && Array.isArray(response.data?.data)) {
+          reviewsList = response.data.data;
         } else {
-          console.log('❌ Failed to fetch reviews:', response);
+          // fallback: try to use response.data if it's an array-like
+          reviewsList = response.data || [];
         }
+
+        console.log('✅ Reviews resolved count:', (reviewsList || []).length);
+        setReviews(reviewsList || []);
       } else {
         console.log('⚠️ No user ID available');
       }
@@ -526,7 +597,20 @@ export default function ClientProfile() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h3 className="text-lg font-semibold text-gray-900">Posted Projects</h3>
-        <button className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">Post New Project</button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => loadProfile()}
+            className="px-3 py-2 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+          >
+            Refresh
+          </button>
+          <button
+            onClick={() => navigate('/client/post-project')}
+            className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+          >
+            Post New Project
+          </button>
+        </div>
       </div>
       <div className="space-y-4">
         {(profile.postedProjects || []).map((p) => (

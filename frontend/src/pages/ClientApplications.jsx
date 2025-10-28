@@ -62,13 +62,13 @@ const ClientApplications = () => {
                 rating: app.student.rating || 0,
                 completedProjects: app.student.completedProjects || 0,
                 skills: app.student.skills || [],
-                location: app.student.location || "Not specified",
+                location: app.student.location || "",
                 responseTime: "2 hours" // Placeholder for now
               },
               appliedDate: new Date(app.createdAt).toLocaleDateString(),
               proposedBudget: `₹${app.proposedBudget}`,
               originalBudget: `₹${project.budget}`,
-              timeline: app.timeline || "Not specified",
+              timeline: app.timeline || "",
               coverLetter: app.coverLetter || "",
               questions: app.questions || "",
               portfolio: app.student.portfolio?.map(item => ({

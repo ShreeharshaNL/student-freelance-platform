@@ -100,15 +100,24 @@ const StudentProfile = () => {
       const response = await reviewsAPI.getMyReviews('received');
       console.log('📦 Reviews Response:', response);
 
-      if (response.success && Array.isArray(response.data)) {
-        console.log('✅ Setting reviews:', response.data.length);
-        setReviews(response.data);
+      // Normalize response shape similarly to ClientProfile
+      let reviewsList = [];
+      if (!response) {
+        reviewsList = [];
+      } else if (Array.isArray(response)) {
+        reviewsList = response;
       } else if (Array.isArray(response.data)) {
-        setReviews(response.data);
+        reviewsList = response.data;
+      } else if (Array.isArray(response.data?.data)) {
+        reviewsList = response.data.data;
+      } else if (response.success && Array.isArray(response.data)) {
+        reviewsList = response.data;
       } else {
-        console.error('❌ Invalid response format:', response);
-        setReviews([]);
+        reviewsList = response.data || [];
       }
+
+      console.log('✅ Reviews resolved count (student):', (reviewsList || []).length);
+      setReviews(reviewsList || []);
     } catch (error) {
       console.error("❌ Error fetching reviews:", error);
       setReviews([]);

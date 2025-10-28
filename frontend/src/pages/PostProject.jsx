@@ -115,12 +115,13 @@ const PostProject = () => {
       const response = await projectsAPI.createProject(projectData);
 
       if (response.data.success) {
-        // Redirect to dashboard with success message
-        navigate('/client/dashboard', { 
-          state: { 
+        // Redirect to client profile so Posted Projects is visible and request a refresh
+        navigate('/client/profile', {
+          state: {
             message: 'Project posted successfully!',
-            type: 'success'
-          } 
+            type: 'success',
+            refreshProfile: true,
+          },
         });
       }
     } catch (err) {
@@ -371,7 +372,7 @@ const PostProject = () => {
         <div className="space-y-3">
           <div>
             <span className="text-sm font-medium text-gray-500">Title:</span>
-            <p className="text-gray-900">{formData.title || "Not specified"}</p>
+            {formData.title && <p className="text-gray-900">{formData.title}</p>}
           </div>
           
           <div>
@@ -390,7 +391,7 @@ const PostProject = () => {
 
           <div>
             <span className="text-sm font-medium text-gray-500">Deadline:</span>
-            <p className="text-gray-900">{formData.deadline || "Not specified"}</p>
+            {formData.deadline && <p className="text-gray-900">{formData.deadline}</p>}
           </div>
 
           <div>
