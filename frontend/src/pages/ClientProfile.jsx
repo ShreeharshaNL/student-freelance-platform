@@ -73,7 +73,6 @@ const HeaderCard = memo(function HeaderCard({
               )}
 
               <div className="flex items-center gap-4 mt-2 text-sm text-gray-500">
-                <span>📍 {profile.location || "—"}</span>
                 <span>📅 Member since {profile.joinDate || "—"}</span>
               </div>
             </div>
