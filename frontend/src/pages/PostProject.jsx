@@ -460,7 +460,7 @@ const PostProject = () => {
             className="rounded mt-1 text-indigo-600 focus:ring-indigo-500" 
           />
           <label htmlFor="terms" className="text-sm text-gray-700 leading-relaxed">
-            I agree to the <a href="#" className="text-indigo-600 hover:text-indigo-700">Terms of Service</a> and 
+            I agree to the <span className="text-indigo-600 hover:text-indigo-700 cursor-pointer" onClick={(e) => { e.preventDefault(); window.open('/terms-and-conditions', '_blank'); }}>Terms of Service</span> and 
             confirm that this project complies with our community guidelines. I understand that I'll be charged 
             a 5% platform fee on successful project completion.
           </label>
@@ -530,7 +530,7 @@ const PostProject = () => {
             </button>
             
             {error && (
-              <div className="absolute bottom-full left-0 right-0 mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+              <div className="absolute bottom-full left-0 right-0 mb-4 p-3 bg-red-50 border border-red-200 rounded-lg z-10">
                 <p className="text-red-600 text-sm">{error}</p>
               </div>
             )}
