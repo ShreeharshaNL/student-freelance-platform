@@ -161,14 +161,18 @@ const ClientProfileView = () => {
                   <label className="text-sm font-medium text-gray-600">Email</label>
                   <p className="text-gray-900 mt-1">{client.email}</p>
                 </div>
-                <div>
-                  <label className="text-sm font-medium text-gray-600">Location</label>
-                  <p className="text-gray-900 mt-1">{client.location || "Not specified"}</p>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-gray-600">Phone</label>
-                  <p className="text-gray-900 mt-1">{client.phone || "Not specified"}</p>
-                </div>
+                {client.location && (
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">Location</label>
+                    <p className="text-gray-900 mt-1">{client.location}</p>
+                  </div>
+                )}
+                {client.phone && (
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">Phone</label>
+                    <p className="text-gray-900 mt-1">{client.phone}</p>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -176,10 +180,12 @@ const ClientProfileView = () => {
             <div className="bg-white p-6 rounded-xl shadow-sm border">
               <h2 className="text-xl font-bold text-gray-900 mb-4">Company Information</h2>
               <div className="space-y-4">
-                <div>
-                  <label className="text-sm font-medium text-gray-600">Company Name</label>
-                  <p className="text-gray-900 mt-1">{client.companyName || "Not specified"}</p>
-                </div>
+                {client.companyName && (
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">Company Name</label>
+                    <p className="text-gray-900 mt-1">{client.companyName}</p>
+                  </div>
+                )}
                 {client.industryType && (
                   <div>
                     <label className="text-sm font-medium text-gray-600">Industry</label>
