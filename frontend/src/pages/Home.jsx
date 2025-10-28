@@ -112,13 +112,13 @@ const Home = () => {
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center md:justify-start">
                 <Link
-                  to="/signup"
+                  to="/signup?role=student"
                   className="bg-indigo-600 text-white px-8 py-4 rounded-lg text-lg font-semibold hover:bg-indigo-700 transition-colors shadow-lg"
                 >
                   Start as a Student
                 </Link>
                 <Link
-                  to="/signup"
+                  to="/signup?role=client"
                   className="border-2 border-indigo-600 text-indigo-600 px-8 py-4 rounded-lg text-lg font-semibold hover:bg-indigo-50 transition-colors"
                 >
                   Hire Students

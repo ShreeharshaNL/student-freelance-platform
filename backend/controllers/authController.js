@@ -18,6 +18,17 @@ exports.registerUser = async (req, res) => {
   try {
     const { name, email, password, role } = req.body;
 
+    // Validate college email for students
+    if (role === 'student') {
+      const collegeEmailPattern = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.(edu|ac\.[a-z]{2}|edu\.[a-z]{2})$/i;
+      if (!collegeEmailPattern.test(email)) {
+        return res.status(400).json({ 
+          success: false, 
+          error: "Students must use a valid college email address (e.g., .edu, .ac.uk, .edu.in)" 
+        });
+      }
+    }
+
     // Check if user exists
     const existingUser = await User.findOne({ email });
     if (existingUser) {
