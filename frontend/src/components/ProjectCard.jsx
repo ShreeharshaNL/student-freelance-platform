@@ -68,10 +68,12 @@ const ProjectCard = ({ project, showActions = true, isClientView = false }) => {
               <span>📅</span>
               <span>{formatDate(project.deadline)}</span>
             </span>
-            <span className="flex items-center gap-1">
-              <span>👤</span>
-              <span>{project.user?.name || 'Anonymous'}</span>
-            </span>
+            {!isClientView && (
+              <span className="flex items-center gap-1">
+                <span>👤</span>
+                <span>{project.user?.name || 'Anonymous'}</span>
+              </span>
+            )}
             <span className="flex items-center gap-1">
               <span>⏱️</span>
               <span>{project.projectType?.replace('-', ' ')}</span>

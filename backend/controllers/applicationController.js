@@ -205,7 +205,7 @@ exports.getMyApplications = async (req, res) => {
         const applications = await Application.find({ student: req.user.id })
             .populate({
                 path: 'project',
-                select: 'title description budget status',
+                select: 'title description budget status deadline skillsRequired category projectType experienceLevel',
                 populate: {
                     path: 'user',
                     select: 'name'

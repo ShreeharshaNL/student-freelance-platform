@@ -66,13 +66,15 @@ exports.getConversations = async (req, res) => {
     const convos = await Conversation.find({ participants: req.user._id })
       .sort({ updatedAt: -1 })
       .populate({ path: "lastMessage", select: "content sender createdAt" })
+      .populate({ path: "participants", select: "name email" })
       .lean();
 
     const result = convos.map((c) => {
-      const otherId = c.participants.find((p) => p.toString() !== req.user._id.toString());
+      const otherId = c.participants.find((p) => p._id.toString() !== req.user._id.toString());
       return {
         _id: c._id,
-        otherUserId: otherId,
+        otherUserId: otherId?._id,
+        otherUserName: otherId?.name,
         lastMessage: c.lastMessage || null,
         updatedAt: c.updatedAt,
       };
