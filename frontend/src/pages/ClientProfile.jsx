@@ -73,6 +73,7 @@ const HeaderCard = memo(function HeaderCard({
               )}
 
               <div className="flex items-center gap-4 mt-2 text-sm text-gray-500">
+                <span>📍 {profile.location || "—"}</span>
                 <span>📅 Member since {profile.joinDate || "—"}</span>
               </div>
             </div>
@@ -454,44 +455,40 @@ export default function ClientProfile() {
     if (user?._id) {
       fetchReviews();
     }
-  }, [user]);
+  }, [user?._id]);
 
   const fetchReviews = async () => {
     try {
-      if (user?._id) {
-        console.log('🔍 Fetching reviews for user:', user._id);
-        // Use getMyReviews instead to get received reviews for the logged-in user
-        const response = await reviewsAPI.getMyReviews('received');
-        console.log('📦 Full response (reviews):', response);
-
-        // Normalize response shapes: reviewsAPI may return { success, data: [...] }
-        // or an array directly in some implementations. Handle both.
-        let reviewsList = [];
-        if (!response) {
-          reviewsList = [];
-        } else if (Array.isArray(response)) {
-          reviewsList = response;
-        } else if (Array.isArray(response.data)) {
-          reviewsList = response.data;
-        } else if (Array.isArray(response.data?.data)) {
-          reviewsList = response.data.data;
-        } else if (response.success && Array.isArray(response.data)) {
-          reviewsList = response.data;
-        } else if (response.success && Array.isArray(response.data?.data)) {
-          reviewsList = response.data.data;
-        } else {
-          // fallback: try to use response.data if it's an array-like
-          reviewsList = response.data || [];
-        }
-
-        console.log('✅ Reviews resolved count:', (reviewsList || []).length);
-        setReviews(reviewsList || []);
-      } else {
+      if (!user?._id) {
         console.log('⚠️ No user ID available');
+        return;
       }
+
+      console.log('🔍 Fetching reviews for user:', user._id);
+      const response = await reviewsAPI.getMyReviews('received');
+      console.log('📦 Full response (reviews):', response);
+
+      // Normalize response shapes
+      let reviewsList = [];
+      if (!response) {
+        reviewsList = [];
+      } else if (Array.isArray(response)) {
+        reviewsList = response;
+      } else if (response.success && Array.isArray(response.data)) {
+        reviewsList = response.data;
+      } else if (Array.isArray(response.data)) {
+        reviewsList = response.data;
+      } else {
+        reviewsList = [];
+      }
+
+      console.log('✅ Reviews resolved count:', reviewsList.length);
+      console.log('📋 Reviews data:', reviewsList);
+      setReviews(reviewsList);
     } catch (error) {
       console.error("❌ Error fetching reviews:", error);
       console.error("Error details:", error.response?.data);
+      setReviews([]);
     }
   };
 

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import DashboardLayout from "../components/DashboardLayout";
 import StatsCard from "../components/StatsCard";
-import SpendingChart from "../components/SpendingChart";
+import HiringActivityChart from "../components/HiringActivityChart";
 import CategoryChart from "../components/CategoryChart";
 import { useAuth } from "../context/AuthContext";
 import { profileAPI } from "../utils/profileAPI";
@@ -123,21 +123,7 @@ const ClientDashboard = () => {
     ];
   };
 
-  // Generate spending chart data from profile
-  const getSpendingChartData = () => {
-    // Only return data if we have spending
-    if (!profile || profile.monthlySpent === 0) {
-      return [];
-    }
-    
-    // Return only the current month's data if available
-    return [
-      {
-        month: 'Current Month',
-        amount: profile.monthlySpent || 0
-      }
-    ];
-  };
+  // No longer needed - removed spending chart data
 
   // Generate category data from projects
   const getCategoryData = () => {
@@ -228,7 +214,6 @@ const ClientDashboard = () => {
   const dashboardStats = calculateStats();
   const recentActivities = getRecentActivities();
   const displayName = profile?.companyName || user?.name || 'Client';
-  const spendingChartData = getSpendingChartData();
   const categoryData = getCategoryData();
 
   return (
@@ -267,9 +252,9 @@ const ClientDashboard = () => {
 
         {/* Charts Section */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Spending Chart */}
+          {/* Hiring Activity Chart */}
           <div className="lg:col-span-2">
-            <SpendingChart data={spendingChartData} title="Monthly Spending" />
+            <HiringActivityChart applications={applications} title="Hiring Activity" />
           </div>
 
           {/* Category Breakdown */}

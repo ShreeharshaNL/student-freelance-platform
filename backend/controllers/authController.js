@@ -75,16 +75,30 @@ exports.loginUser = async (req, res) => {
   try {
     const { email, password } = req.body;
 
+    // Validate input
+    if (!email || !password) {
+      return res.status(400).json({ 
+        success: false, 
+        error: "Please provide both email and password" 
+      });
+    }
+
     // Find user
     const user = await User.findOne({ email });
     if (!user) {
-      return res.status(400).json({ success: false, error: "Invalid credentials" });
+      return res.status(400).json({ 
+        success: false, 
+        error: "No account found with this email address" 
+      });
     }
 
     // Compare password
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
-      return res.status(400).json({ success: false, error: "Invalid credentials" });
+      return res.status(400).json({ 
+        success: false, 
+        error: "Incorrect password. Please try again" 
+      });
     }
 
     // Generate token
@@ -103,7 +117,10 @@ exports.loginUser = async (req, res) => {
       },
     });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ success: false, error: "Server error" });
+    console.error('Login error:', err);
+    res.status(500).json({ 
+      success: false, 
+      error: "Server error. Please try again later" 
+    });
   }
 };
