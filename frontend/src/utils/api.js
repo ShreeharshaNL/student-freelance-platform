@@ -3,7 +3,7 @@ import axios from "axios";
 import { tokenUtils } from "./auth"; // <-- same folder as your other utils
 
 const api = axios.create({
-  baseURL: import.meta.env.REACT_APP_API_URL,
+  baseURL: import.meta.env.VITE_API_URL,
   withCredentials: false,
 });
 
