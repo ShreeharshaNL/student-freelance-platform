@@ -1,4 +1,5 @@
 import React from "react";
+import { Link } from "react-router-dom";
 
 const Footer = () => {
   return (
@@ -51,7 +52,7 @@ const Footer = () => {
               <li><a href="#" className="hover:text-white transition-colors">Find Talent</a></li>
               <li><a href="#" className="hover:text-white transition-colors">Manage Projects</a></li>
               <li><a href="#" className="hover:text-white transition-colors">Support Students</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">Quality Assurance</a></li>
+              <li><Link to="/terms-and-conditions" className="hover:text-white transition-colors">Terms of Service</Link></li>
             </ul>
           </div>
 
@@ -62,8 +63,8 @@ const Footer = () => {
               <li><a href="#" className="hover:text-white transition-colors">Help Center</a></li>
               <li><a href="#" className="hover:text-white transition-colors">Contact Us</a></li>
               <li><a href="#" className="hover:text-white transition-colors">Community Guidelines</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">Privacy Policy</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">Terms of Service</a></li>
+             <li><Link to="/privacy-policy" className="hover:text-white transition-colors">Privacy Policy</Link></li>
+             <li><Link to="/terms-and-conditions" className="hover:text-white transition-colors">Terms of Service</Link></li>
             </ul>
           </div>
         </div>
@@ -72,7 +73,7 @@ const Footer = () => {
         <div className="border-t border-gray-800 mt-8 pt-8">
           <div className="flex flex-col md:flex-row justify-between items-center">
             <p className="text-gray-400 text-sm">
-              &copy; 2024 StudentFreelance Platform. All rights reserved.
+              &copy; 2025 StudentFreelance Platform. All rights reserved.
             </p>
             <div className="flex space-x-4 mt-4 md:mt-0">
               <a href="#" className="text-gray-400 hover:text-white transition-colors text-sm">

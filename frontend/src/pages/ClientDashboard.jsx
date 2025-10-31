@@ -2,12 +2,13 @@ import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import DashboardLayout from "../components/DashboardLayout";
 import StatsCard from "../components/StatsCard";
-import SpendingChart from "../components/SpendingChart";
+import HiringActivityChart from "../components/HiringActivityChart";
 import CategoryChart from "../components/CategoryChart";
 import { useAuth } from "../context/AuthContext";
 import { profileAPI } from "../utils/profileAPI";
 import { projectsAPI } from "../utils/projectsAPI";
 import { applicationsAPI } from "../utils/applicationsAPI";
+
 
 const ClientDashboard = () => {
   const { user } = useAuth();
@@ -29,43 +30,45 @@ const ClientDashboard = () => {
       // Fetch profile data
       const profileResponse = await profileAPI.getProfile();
       console.log('Profile response:', profileResponse);
-      if (profileResponse.success) {
-        setProfile(profileResponse.data);
+      if (profileResponse.success || profileResponse.data) {
+        setProfile(profileResponse.data || profileResponse);
       }
 
       // Fetch client's projects
       const projectsResponse = await projectsAPI.getMyProjects();
       console.log('Projects response:', projectsResponse);
-      if (projectsResponse.success) {
+      console.log('Projects data:', projectsResponse.data);
+      
+      // Handle Axios response structure
+      if (projectsResponse.data) {
         const projectsData = projectsResponse.data.data || projectsResponse.data || [];
+        console.log('Parsed projects:', projectsData);
         setProjects(Array.isArray(projectsData) ? projectsData : []);
       }
 
       // Fetch applications for client's projects
-      const applicationsResponse = await applicationsAPI.getMyProjects();
+      const applicationsResponse = await applicationsAPI.getApplicationsForMyProjects();
       console.log('Applications response:', applicationsResponse);
-      if (applicationsResponse.success) {
-        const allApplications = [];
-        const projectsData = applicationsResponse.data.data || [];
-        projectsData.forEach(project => {
-          if (Array.isArray(project.applications)) {
-            project.applications.forEach(app => {
-              allApplications.push({
-                id: app._id,
-                projectId: project._id,
-                projectTitle: project.title,
-                studentName: app.student?.name || "Unknown",
-                studentId: app.student?._id,
-                studentRating: app.student?.rating || 0,
-                appliedDate: new Date(app.createdAt).toLocaleDateString(),
-                proposedBudget: `₹${app.proposedBudget}`,
-                studentSkills: app.student?.skills || [],
-                status: app.status
-              });
-            });
-          }
-        });
-        setApplications(allApplications);
+      console.log('Applications data:', applicationsResponse.data);
+      
+      // Handle Axios response structure
+      if (applicationsResponse.data) {
+        const applicationsData = applicationsResponse.data.data || applicationsResponse.data || [];
+        console.log('Parsed applications:', applicationsData);
+        
+        const formattedApplications = applicationsData.map(app => ({
+          id: app._id,
+          projectId: app.project?._id,
+          projectTitle: app.project?.title || "Unknown Project",
+          studentName: app.student?.name || "Unknown",
+          studentId: app.student?._id,
+          studentRating: app.student?.rating || 0,
+          appliedDate: new Date(app.createdAt).toLocaleDateString(),
+          proposedBudget: `₹${app.proposedBudget || 0}`,
+          studentSkills: app.student?.skills || [],
+          status: app.status
+        }));
+        setApplications(formattedApplications);
       }
     } catch (err) {
       console.error('Error fetching dashboard data:', err);
@@ -82,7 +85,7 @@ const ClientDashboard = () => {
     const totalApplications = applications.length;
     const pendingApplications = applications.filter(a => a.status === 'pending').length;
     const totalSpent = projects.reduce((sum, p) => sum + (p.budget || 0), 0);
-    const avgRating = profile?.avgRatingGiven || 0;
+     const avgRating = profile?.avgRatingGiven || profile?.rating || 0;
 
     return [
       {
@@ -120,21 +123,7 @@ const ClientDashboard = () => {
     ];
   };
 
-  // Generate spending chart data from profile
-  const getSpendingChartData = () => {
-    // Only return data if we have spending
-    if (!profile || profile.monthlySpent === 0) {
-      return [];
-    }
-    
-    // Return only the current month's data if available
-    return [
-      {
-        month: 'Current Month',
-        amount: profile.monthlySpent || 0
-      }
-    ];
-  };
+  // No longer needed - removed spending chart data
 
   // Generate category data from projects
   const getCategoryData = () => {
@@ -225,7 +214,6 @@ const ClientDashboard = () => {
   const dashboardStats = calculateStats();
   const recentActivities = getRecentActivities();
   const displayName = profile?.companyName || user?.name || 'Client';
-  const spendingChartData = getSpendingChartData();
   const categoryData = getCategoryData();
 
   return (
@@ -264,9 +252,9 @@ const ClientDashboard = () => {
 
         {/* Charts Section */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Spending Chart */}
+          {/* Hiring Activity Chart */}
           <div className="lg:col-span-2">
-            <SpendingChart data={spendingChartData} title="Monthly Spending" />
+            <HiringActivityChart applications={applications} title="Hiring Activity" />
           </div>
 
           {/* Category Breakdown */}

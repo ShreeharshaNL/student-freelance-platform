@@ -111,6 +111,44 @@ exports.submitApplication = async (req, res) => {
     }
 };
 
+// @desc    Get all applications for client's projects
+// @route   GET /api/applications/my-projects-applications
+// @access  Private (Clients only)
+exports.getApplicationsForMyProjects = async (req, res) => {
+    try {
+        // Check if user is a client
+        if (!req.user || req.user.role !== 'client') {
+            return res.status(403).json({
+                success: false,
+                error: 'Only clients can access this endpoint'
+            });
+        }
+
+        // Find all projects owned by the client
+        const projects = await Project.find({ user: req.user.id });
+        const projectIds = projects.map(project => project._id);
+
+        // Find all applications for these projects
+        const applications = await Application.find({
+            project: { $in: projectIds }
+        })
+        .populate('student', 'name email')
+        .populate('project', 'title budget status')
+        .sort({ createdAt: -1 });
+
+        res.json({
+            success: true,
+            data: applications
+        });
+    } catch (error) {
+        console.error('Get applications for my projects error:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Server error'
+        });
+    }
+};
+
 // @desc    Get applications for a project
 // @route   GET /api/projects/:projectId/applications
 // @access  Private (Project owner only)
@@ -167,7 +205,7 @@ exports.getMyApplications = async (req, res) => {
         const applications = await Application.find({ student: req.user.id })
             .populate({
                 path: 'project',
-                select: 'title description budget status',
+                select: 'title description budget status deadline skillsRequired category projectType experienceLevel',
                 populate: {
                     path: 'user',
                     select: 'name'

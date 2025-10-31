@@ -2,6 +2,9 @@
 const User = require("../models/User");
 const StudentProfile = require("../models/StudentProfileModel");
 const ClientProfile = require("../models/ClientProfileModel");
+const Project = require("../models/projectModel"); // ✅ Update this path if needed
+const Application = require("../models/Application"); // ✅ Add Application model
+const Review = require("../models/Review"); // ✅ Add this import (if you have reviews)
 
 /* ---------- allowlists ---------- */
 const CLIENT_ALLOWED = new Set([
@@ -9,7 +12,7 @@ const CLIENT_ALLOWED = new Set([
   "industryType",
   "location",
   "joinDate",
-  "website",        // matches model + frontend
+  "website",
   "companySize",
   "profileImage",
   "rating",
@@ -51,6 +54,182 @@ exports.getProfile = async (req, res) => {
     if (user.role === "student") {
       profile = await StudentProfile.findOne({ user: user._id });
       if (!profile) profile = await StudentProfile.create({ user: user._id });
+
+      // ✅ CALCULATE STATS FOR STUDENT (matching dashboard logic)
+      try {
+        console.log('🔍 Calculating stats for student:', user._id);
+        console.log('🔍 Student ID type:', typeof user._id, user._id.toString());
+        
+        // Find ALL projects that have this student in applications array
+        const allProjects = await Project.find({
+          'applications.student': user._id
+        }).lean();
+
+        console.log('📦 Total projects found:', allProjects.length);
+
+        // If no projects found, let's check all projects
+        if (allProjects.length === 0) {
+          console.log('⚠️ No projects found! Checking all projects with applications...');
+          const allProjectsWithApps = await Project.find({
+            'applications.0': { $exists: true }
+          }).lean();
+          console.log('📊 Total projects with applications:', allProjectsWithApps.length);
+          
+          if (allProjectsWithApps.length > 0) {
+            console.log('🔍 Sample project applications:', 
+              allProjectsWithApps.slice(0, 2).map(p => ({
+                projectId: p._id,
+                projectTitle: p.title,
+                applications: p.applications.map(a => ({
+                  studentId: a.student,
+                  studentIdType: typeof a.student,
+                  status: a.status,
+                  proposedBudget: a.proposedBudget
+                }))
+              }))
+            );
+          }
+        }
+
+        // Build applications array like the dashboard expects
+        const applications = [];
+        
+        allProjects.forEach(project => {
+          // Find this student's application
+          const studentApp = project.applications.find(
+            app => app.student.toString() === user._id.toString()
+          );
+
+          if (studentApp) {
+            // Create application object matching dashboard format
+            const application = {
+              _id: studentApp._id,
+              project: {
+                _id: project._id,
+                title: project.title,
+                category: project.category,
+                status: project.status,
+                budget: project.budget
+              },
+              student: studentApp.student,
+              status: studentApp.status,
+              proposedBudget: studentApp.proposedBudget,
+              timeline: studentApp.timeline,
+              coverLetter: studentApp.coverLetter,
+              progress: studentApp.progress,
+              completionDate: studentApp.completionDate,
+              appliedAt: studentApp.createdAt || project.createdAt,
+              createdAt: studentApp.createdAt || project.createdAt,
+              updatedAt: project.updatedAt
+            };
+            applications.push(application);
+
+            console.log('📋 Application:', {
+              projectTitle: project.title,
+              projectStatus: project.status,
+              appStatus: studentApp.status,
+              proposedBudget: studentApp.proposedBudget
+            });
+          }
+        });
+
+        console.log('📊 Total applications:', applications.length);
+
+        // Calculate stats - check project status (not application status)
+        // Count based on project.status, not app.status
+        const completedApplications = applications.filter(app => 
+          app.project.status === 'completed' && app.status === 'accepted'
+        );
+        
+        const inProgressApplications = applications.filter(app => 
+          app.project.status === 'in-progress' && app.status === 'accepted'
+        );
+
+        const underReviewApplications = applications.filter(app => 
+          app.project.status === 'under-review' && app.status === 'accepted'
+        );
+
+        const acceptedApplications = applications.filter(app => 
+          app.status === 'accepted'
+        );
+
+        console.log('📈 Application breakdown:', {
+          total: applications.length,
+          acceptedApps: acceptedApplications.length,
+          completed: completedApplications.length,
+          inProgress: inProgressApplications.length,
+          underReview: underReviewApplications.length,
+          details: applications.map(a => ({
+            project: a.project.title,
+            projectStatus: a.project.status,
+            appStatus: a.status,
+            budget: a.proposedBudget
+          }))
+        });
+
+        // Calculate total earnings from ALL accepted applications 
+        // (regardless of project status, since student gets paid when accepted)
+        const totalEarnings = acceptedApplications
+          .reduce((sum, app) => sum + (app.proposedBudget || 0), 0);
+
+        // Calculate monthly earnings (last 30 days) from accepted applications
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        
+        const monthlyEarnings = acceptedApplications
+          .filter(app => {
+            const appDate = new Date(app.appliedAt || app.createdAt || app.updatedAt);
+            return appDate >= thirtyDaysAgo;
+          })
+          .reduce((sum, app) => sum + (app.proposedBudget || 0), 0);
+
+        // Completed projects count is based on project status being 'completed'
+        const completedCount = completedApplications.length;
+
+        console.log('💵 Calculated stats:', {
+          completedCount,
+          totalEarnings,
+          monthlyEarnings,
+          inProgressCount: inProgressApplications.length,
+          pendingCount: applications.filter(a => a.status === 'pending').length
+        });
+
+        // Get reviews for this student (if Review model exists)
+        let avgRating = 0;
+        let totalReviews = 0;
+        try {
+          const reviews = await Review.find({ reviewee: user._id });
+          totalReviews = reviews.length;
+          if (totalReviews > 0) {
+            avgRating = reviews.reduce((sum, r) => sum + (r.rating || 0), 0) / totalReviews;
+          }
+          console.log('⭐ Reviews:', totalReviews, 'Avg rating:', avgRating);
+        } catch (reviewError) {
+          console.log("⚠️ Review calculation skipped");
+        }
+
+        // Update profile with calculated stats
+        profile.completedProjects = completedCount;
+        profile.totalEarnings = totalEarnings;
+        profile.monthlyEarnings = monthlyEarnings;
+        profile.rating = parseFloat(avgRating.toFixed(1)) || 0;
+        profile.totalReviews = totalReviews;
+
+        console.log('✅ Saving profile with stats:', {
+          completedProjects: profile.completedProjects,
+          totalEarnings: profile.totalEarnings,
+          monthlyEarnings: profile.monthlyEarnings,
+          rating: profile.rating,
+          totalReviews: profile.totalReviews
+        });
+
+        await profile.save();
+      } catch (statsError) {
+        console.error("❌ Error calculating student stats:", statsError);
+        console.error("Stack trace:", statsError.stack);
+        // Continue without stats update
+      }
+
     } else if (user.role === "client") {
       profile = await ClientProfile.findOne({ user: user._id });
       if (!profile) {
@@ -65,6 +244,28 @@ exports.getProfile = async (req, res) => {
         profile.companyName = user.name || "New Company";
         await profile.save();
       }
+
+      // ✅ CALCULATE STATS FOR CLIENT (optional)
+      try {
+        const clientProjects = await Project.find({ user: user._id });
+        const completedClientProjects = clientProjects.filter(p => p.status === 'completed');
+        
+        let totalSpent = 0;
+        completedClientProjects.forEach(project => {
+          const acceptedApp = project.applications.find(app => app.status === 'accepted');
+          if (acceptedApp) {
+            totalSpent += acceptedApp.proposedBudget || 0;
+          }
+        });
+
+        profile.projectsPosted = clientProjects.length;
+        profile.totalSpent = totalSpent;
+
+        await profile.save();
+      } catch (statsError) {
+        console.error("Error calculating client stats:", statsError);
+      }
+
     } else {
       return res.status(400).json({ success: false, error: "Unsupported role" });
     }
@@ -138,11 +339,29 @@ exports.updateProfile = async (req, res) => {
 
     await profile.save();
 
-    // 4) Return fresh profile
+    // 4) Return fresh profile with calculated stats
     const fresh = await Model.findOne({ user: user._id });
+
+    // Recalculate stats after update for students
+    if (user.role === "student") {
+      try {
+        const applications = await Application.find({ student: user._id }).lean();
+        
+        const completedCount = applications.filter(a => a.status === 'completed').length;
+        const totalEarnings = applications
+          .filter(a => a.status === 'completed' || a.status === 'accepted')
+          .reduce((sum, a) => sum + (a.proposedBudget || 0), 0);
+
+        fresh.completedProjects = completedCount;
+        fresh.totalEarnings = totalEarnings;
+        await fresh.save();
+      } catch (statsError) {
+        console.error("Error recalculating stats:", statsError);
+      }
+    }
+
     return res.json({ success: true, role: user.role, data: fresh });
   } catch (err) {
-    // High-signal logging so you can see real cause
     console.error("Update profile error:");
     console.error("  name   :", err?.name);
     console.error("  code   :", err?.code);

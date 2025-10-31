@@ -4,6 +4,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { profileAPI } from "../utils/profileAPI";
 
+
 const DashboardLayout = ({ children, userType = "student" }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [profile, setProfile] = useState(null);
@@ -32,7 +33,6 @@ const DashboardLayout = ({ children, userType = "student" }) => {
     { name: "My Applications", href: "/student/applications", icon: "📝" },
     { name: "Active Projects", href: "/student/active-projects", icon: "⚡" },
     { name: "My Profile", href: "/student/profile", icon: "👤" },
-    { name: "Earnings", href: "/student/earnings", icon: "💰" },
     { name: "Messages", href: "/student/messages", icon: "💬" },
   ];
 

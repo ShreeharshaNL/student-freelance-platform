@@ -16,9 +16,25 @@ connectDB();
 
 const app = express();
 
+const allowedOrigins = [
+  "http://localhost:5173", // for local dev
+  "https://student-freelance.vercel.app", // your deployed frontend
+];
 // Middleware
 app.use(express.json());
-app.use(cors());
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    credentials: true,
+  })
+);
 app.use(morgan("dev"));
 
 // Routes
@@ -30,6 +46,8 @@ app.use('/api/projects', require('./routes/projectRoutes')); // Project routes s
 app.use('/api/applications', require('./routes/applicationRoutes')); // Updated path to be more RESTful
 app.use('/api/reviews', require('./routes/reviewRoutes'));
 app.use('/api/submissions', require('./routes/submissionRoutes'));
+app.use("/api/chatbot", require("./routes/chatbotRoutes"));
+
 
 // Default route
 app.get("/", (req, res) => {

@@ -89,7 +89,9 @@ const apiRequest = async (endpoint, options = {}) => {
     }
 
     if (!response.ok) {
-      throw new Error(data.message || `HTTP ${response.status}`);
+      // Extract error message from response
+      const errorMessage = data.error || data.message || `HTTP ${response.status}: Request failed`;
+      throw new Error(errorMessage);
     }
 
     return data;

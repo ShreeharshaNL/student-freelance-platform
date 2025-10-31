@@ -165,7 +165,9 @@ const ClientActive = () => {
                     </div>
                     <div>
                       <h3 className="text-lg font-semibold text-gray-900">{hire.student.name}</h3>
-                      <p className="text-sm text-gray-600">{hire.student.location || 'Not specified'}</p>
+                      {hire.student.location && (
+                        <p className="text-sm text-gray-600">{hire.student.location}</p>
+                      )}
                       <div className="text-sm text-gray-600 mt-2">
                         <span className="font-medium">{hire.projectTitle}</span>
                         <span className="ml-2 font-medium">₹{Number(hire.budget).toLocaleString()}</span>

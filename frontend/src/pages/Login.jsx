@@ -10,7 +10,7 @@ export default function Login() {
   const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
- const { login, isAuthenticated, user, loading } = useAuth();
+  const { login, isAuthenticated, user, loading } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -38,7 +38,8 @@ export default function Login() {
       }
       // If successful, the AuthContext will handle navigation
     } catch (error) {
-      setError(error.message || "An unexpected error occurred.");
+      console.error('Login error:', error);
+      setError(error.message || "An unexpected error occurred. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -47,6 +48,14 @@ export default function Login() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 via-white to-purple-50">
       <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md">
+        <div className="mb-4">
+          <button
+            onClick={() => navigate("/")}
+            className="text-sm text-gray-500 hover:text-indigo-600 transition-colors"
+          >
+            ← Back to Home
+          </button>
+        </div>
         <div className="text-center mb-8">
           <h2 className="text-3xl font-bold text-gray-800">Welcome Back</h2>
           <p className="text-gray-600 mt-2">Login to your account</p>
@@ -54,8 +63,11 @@ export default function Login() {
 
         {/* Error Message */}
         {error && (
-          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-            <p className="text-red-600 text-sm">{error}</p>
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2">
+            <svg className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+            </svg>
+            <p className="text-red-600 text-sm flex-1">{error}</p>
           </div>
         )}
 
@@ -145,6 +157,7 @@ export default function Login() {
               "Login"
             )}
           </button>
+
         </form>
 
         <div className="mt-6 text-center">
@@ -155,6 +168,7 @@ export default function Login() {
             </Link>
           </p>
         </div>
+
       </div>
     </div>
   );

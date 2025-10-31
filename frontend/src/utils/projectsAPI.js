@@ -1,3 +1,4 @@
+//projectsAPI.js
 import API from './api';
 
 export const projectsAPI = {
@@ -19,6 +20,11 @@ export const projectsAPI = {
     // Get client's projects
     getMyProjects: async () => {
         return API.get('/projects/my');
+    },
+
+    // Get client's projects with their applications populated
+    getMyProjectsWithApplications: async () => {
+        return API.get('/projects/my-with-applications');
     },
 
     // Update project
