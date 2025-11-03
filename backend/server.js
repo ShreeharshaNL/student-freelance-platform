@@ -18,7 +18,7 @@ const app = express();
 
 const allowedOrigins = [
   "http://localhost:5173", // for local dev
-  "https://student-freelance.vercel.app", // your deployed frontend
+  "student-freelance-platform-nie.vercel.app", // your deployed frontend
 ];
 // Middleware
 app.use(express.json());

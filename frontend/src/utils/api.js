@@ -1,16 +1,24 @@
 // src/utils/api.js
 import axios from "axios";
-import { tokenUtils } from "./auth"; // <-- same folder as your other utils
+import { tokenUtils } from "./auth";
+
+// ✅ Use Vercel + local env variables
+const baseURL =
+  import.meta.env.VITE_API_URL ||
+  process.env.NEXT_PUBLIC_API_BASE_URL || // in case you use Next.js later
+  "http://localhost:5000"; // fallback for local testing
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL,
-  withCredentials: false,
+  baseURL,
+  withCredentials: true, // allow cookies / auth headers if needed
 });
 
-// Attach Authorization header on every request using the token your app manages
+// Automatically attach JWT token to every request
 api.interceptors.request.use((req) => {
-  const token = tokenUtils.getToken(); // unified source of truth
-  if (token) req.headers.Authorization = `Bearer ${token}`;
+  const token = tokenUtils.getToken();
+  if (token) {
+    req.headers.Authorization = `Bearer ${token}`;
+  }
   return req;
 });
 
