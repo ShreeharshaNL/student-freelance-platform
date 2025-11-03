@@ -250,7 +250,7 @@ const StudentActiveProjects = () => {
                         <div>
                           <h3 className="text-xl font-semibold text-gray-900 mb-1">{project.title}</h3>
                           <div className="flex items-center gap-4 text-sm text-gray-500 mb-2">
-                     <span>👤 {project.client && project.client.name ? project.client.name : 'Client Not Specified'}</span>
+                     <span>👤 {project.client && project.client.name ? project.client.name : ''}</span>
                      <span>💰 ₹{Number(project.budget).toLocaleString()}</span>
                      <span>📅 Due: {project.deadline ? new Date(project.deadline).toLocaleDateString() : 'N/A'}</span>
                      <span>📝 {project.messages} messages</span>

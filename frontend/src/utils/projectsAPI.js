@@ -22,6 +22,11 @@ export const projectsAPI = {
         return API.get('/projects/my');
     },
 
+    // Get client's projects with their applications populated
+    getMyProjectsWithApplications: async () => {
+        return API.get('/projects/my-with-applications');
+    },
+
     // Update project
     updateProject: async (id, projectData) => {
         return API.put(`/projects/${id}`, projectData);

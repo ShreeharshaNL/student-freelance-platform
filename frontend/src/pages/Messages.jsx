@@ -1,54 +1,121 @@
 import React, { useState, useEffect, useRef } from "react";
 import DashboardLayout from "../components/DashboardLayout";
 import { useAuth } from "../context/AuthContext.jsx";
-import { useLocation } from "react-router-dom";
+import { useLocation, useSearchParams } from "react-router-dom";
 import { messagesAPI } from "../utils/messagesAPI";
 import { io } from "socket.io-client";
 import API from "../utils/api";
 
 const Messages = ({ userType = "student" }) => {
   const location = useLocation();
+  const [searchParams] = useSearchParams();
+  const userIdFromUrl = searchParams.get('userId');
   const initialConversation = location.state?.selectedConversation || null;
   const [selectedConversation, setSelectedConversation] = useState(initialConversation);
   const [newMessage, setNewMessage] = useState("");
   const [conversations, setConversations] = useState([]);
   const [chatMessages, setChatMessages] = useState([]);
+  const [userNames, setUserNames] = useState({}); // Store user names by ID
   const socketRef = useRef(null);
   const { user } = useAuth();
   const [emailInput, setEmailInput] = useState("");
   const [creating, setCreating] = useState(false);
+  const hasHandledUrlParam = useRef(false);
 
-  useEffect(() => {
-    const fetchConversations = async () => {
-      try {
-        const res = await messagesAPI.getConversations();
-        const list = (res.data?.conversations || res.conversations || []);
-        const mapped = list.map((c) => ({
+  // Fetch user names for conversations
+  const fetchUserName = async (userId) => {
+    if (!userId) return null;
+    if (userNames[userId]) return userNames[userId];
+    
+    try {
+      const res = await API.get(`/user/${userId}`);
+      const name = res.data?.data?.name || res.data?.name || 'Unknown User';
+      setUserNames(prev => ({ ...prev, [userId]: name }));
+      return name;
+    } catch (error) {
+      console.error('Failed to fetch user name:', error);
+      return 'Unknown User';
+    }
+  };
+
+  const fetchConversations = async () => {
+    try {
+      const res = await messagesAPI.getConversations();
+      const list = (res.data?.conversations || res.conversations || []);
+      
+      // Fetch names for users that don't have names from backend
+      const namePromises = list.map(async (c) => {
+        if (c.otherUserName) {
+          return c.otherUserName;
+        }
+        return await fetchUserName(c.otherUserId);
+      });
+      const names = await Promise.all(namePromises);
+      
+      const mapped = list.map((c, index) => {
+        const userName = names[index] || 'Unknown User';
+        return {
           _id: c._id,
-          name: "Chat",
-          avatar: "CH",
+          name: userName,
+          avatar: userName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2),
           lastMessage: c.lastMessage?.content || "",
           time: new Date(c.updatedAt).toLocaleTimeString(),
           unread: 0,
           online: false,
           project: "",
           otherUserId: c.otherUserId,
-        }));
-        setConversations(mapped);
-        if (mapped.length > 0) setSelectedConversation(mapped[0]._id);
-      } catch (e) {
-        console.error("Failed to load conversations", e);
-      }
-    };
+        };
+      });
+      setConversations(mapped);
+      if (mapped.length > 0 && !selectedConversation) setSelectedConversation(mapped[0]._id);
+    } catch (e) {
+      console.error("Failed to load conversations", e);
+    }
+  };
+
+  useEffect(() => {
     fetchConversations();
   }, []);
 
+  // Initialize socket connection
   useEffect(() => {
     if (socketRef.current) return;
     const token = localStorage.getItem('authToken');
     const s = io('http://localhost:5000', { auth: { token } });
     socketRef.current = s;
   }, []);
+
+  // Handle userId from URL parameter (when clicking Message from applications)
+  useEffect(() => {
+    if (!userIdFromUrl || hasHandledUrlParam.current) return;
+    
+    hasHandledUrlParam.current = true;
+    
+    const createConversationFromUrl = async () => {
+      setCreating(true);
+      try {
+        console.log('Creating conversation with userId from URL:', userIdFromUrl);
+        const convoRes = await messagesAPI.createOrGetConversation(userIdFromUrl);
+        const convoId = convoRes.data?.conversation?._id || convoRes.conversation?._id;
+        
+        console.log('Conversation created/retrieved:', convoId);
+        
+        // Refresh conversations list
+        await fetchConversations();
+        
+        // Select the new/existing conversation
+        if (convoId) {
+          setSelectedConversation(convoId);
+        }
+      } catch (error) {
+        console.error('Failed to create conversation from URL:', error);
+      } finally {
+        setCreating(false);
+      }
+    };
+    
+    createConversationFromUrl();
+  }, [userIdFromUrl]);
 
   useEffect(() => {
     const s = socketRef.current;
@@ -145,24 +212,14 @@ const Messages = ({ userType = "student" }) => {
                     const convoRes = await messagesAPI.createOrGetConversation(otherUserId);
                     const convoId = convoRes.data?.conversation?._id || convoRes.conversation?._id;
 
-                    const convosRes = await messagesAPI.getConversations();
-                    const list = (convosRes.data?.conversations || convosRes.conversations || []);
-                    const mapped = list.map((c) => ({
-                      _id: c._id,
-                      name: "Chat",
-                      avatar: "CH",
-                      lastMessage: c.lastMessage?.content || "",
-                      time: new Date(c.updatedAt).toLocaleTimeString(),
-                      unread: 0,
-                      online: false,
-                      project: "",
-                      otherUserId: c.otherUserId,
-                    }));
-                    setConversations(mapped);
+                    // Refresh conversations list with names
+                    await fetchConversations();
+                    
                     if (convoId) setSelectedConversation(convoId);
                     setEmailInput("");
                   } catch (e) {
                     console.error('Failed to start conversation', e);
+                    alert(e.message || 'Failed to start conversation. Please check the email address.');
                   } finally {
                     setCreating(false);
                   }

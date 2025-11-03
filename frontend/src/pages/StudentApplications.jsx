@@ -14,32 +14,56 @@ const StudentApplications = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-          const fetchApplications = async () => {
+    const fetchApplications = async () => {
       try {
         const response = await applicationsAPI.getMyApplications();
-        const formattedApplications = response.data.data.map(app => ({
-          id: app._id,
-          _id: app._id,
-          projectTitle: app.project.title,
-          client: app.project.user.name,
-          appliedDate: new Date(app.createdAt).toLocaleDateString(),
-          status: app.status,
-          budget: `₹${app.project.budget}`,
-          proposedBudget: `₹${app.proposedBudget}`,
-          skills: [], // You might want to get this from project or student profile
-          coverLetter: app.coverLetter,
-          deadline: new Date(app.project.deadline).toLocaleDateString(),
-          message: null,
-          timeline: app.timeline,
-          project: app.project
-        }));
+        const formattedApplications = response.data.data.map(app => {
+          // Format deadline with validation
+          let formattedDeadline = 'No deadline';
+          if (app.project?.deadline) {
+            try {
+              const deadlineDate = new Date(app.project.deadline);
+              if (!isNaN(deadlineDate.getTime())) {
+                formattedDeadline = deadlineDate.toLocaleDateString('en-US', {
+                  year: 'numeric',
+                  month: 'short',
+                  day: 'numeric'
+                });
+              }
+            } catch (e) {
+              console.error('Error formatting deadline:', e);
+            }
+          }
+
+          return {
+            id: app._id,
+            _id: app._id,
+            projectTitle: app.project.title,
+            client: app.project.user.name,
+            appliedDate: new Date(app.createdAt).toLocaleDateString('en-US', {
+              year: 'numeric',
+              month: 'short',
+              day: 'numeric'
+            }),
+            status: app.status,
+            budget: `₹${app.project.budget}`,
+            proposedBudget: `₹${app.proposedBudget}`,
+            skills: [], // You might want to get this from project or student profile
+            coverLetter: app.coverLetter,
+            deadline: formattedDeadline,
+            message: null,
+            timeline: app.timeline,
+            project: app.project
+          };
+        });
         setApplications(formattedApplications);
       } catch (err) {
         setError(err.response?.data?.error || 'Failed to load applications');
       } finally {
         setLoading(false);
       }
-    };    fetchApplications();
+    };
+    fetchApplications();
   }, []);
 
   // Map backend statuses to student-facing labels
