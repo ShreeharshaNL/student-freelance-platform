@@ -1,4 +1,3 @@
-//server.js
 const express = require("express");
 const dotenv = require("dotenv");
 const connectDB = require("./config/db");
@@ -8,33 +7,37 @@ const http = require("http");
 const { Server } = require("socket.io");
 const jwt = require("jsonwebtoken");
 
-// Load env variables
 dotenv.config();
-
-// Connect to MongoDB
 connectDB();
 
 const app = express();
 
+// ✅ include all your actual frontends here
 const allowedOrigins = [
-  "http://localhost:5173", // for local dev
-  "student-freelance-platform-nie.vercel.app", // your deployed frontend
+  "http://localhost:5173",
+  "https://student-freelance-platform-nie.vercel.app",
 ];
-// Middleware
+
+// helper to allow preview deployments
+const isAllowed = (origin) =>
+  !origin ||
+  allowedOrigins.includes(origin) ||
+  /^https:\/\/.*\.vercel\.app$/.test(origin);
+
+const corsOptions = {
+  origin: (origin, cb) => {
+    if (isAllowed(origin)) return cb(null, true);
+    return cb(new Error("Not allowed by CORS"));
+  },
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+  exposedHeaders: ["Authorization"],
+};
+
 app.use(express.json());
-app.use(
-  cors({
-    origin: (origin, callback) => {
-      if (!origin || allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        callback(new Error("Not allowed by CORS"));
-      }
-    },
-    methods: ["GET", "POST", "PUT", "DELETE"],
-    credentials: true,
-  })
-);
+app.use(cors(corsOptions));
+app.options("*", cors(corsOptions)); // handle mobile preflight
 app.use(morgan("dev"));
 
 // Routes
@@ -42,37 +45,29 @@ app.use("/api/auth", require("./routes/authRoutes"));
 app.use("/api/user", require("./routes/userRoutes"));
 app.use("/api/profile", require("./routes/profileRoutes"));
 app.use("/api/messages", require("./routes/messagesRoutes"));
-app.use('/api/projects', require('./routes/projectRoutes')); // Project routes should be first before application routes
-app.use('/api/applications', require('./routes/applicationRoutes')); // Updated path to be more RESTful
-app.use('/api/reviews', require('./routes/reviewRoutes'));
-app.use('/api/submissions', require('./routes/submissionRoutes'));
+app.use("/api/projects", require("./routes/projectRoutes"));
+app.use("/api/applications", require("./routes/applicationRoutes"));
+app.use("/api/reviews", require("./routes/reviewRoutes"));
+app.use("/api/submissions", require("./routes/submissionRoutes"));
 app.use("/api/chatbot", require("./routes/chatbotRoutes"));
 
+app.get("/", (req, res) => res.send("API is running..."));
+app.use((req, res) =>
+  res.status(404).json({ success: false, error: "Route not found" })
+);
 
-// Default route
-app.get("/", (req, res) => {
-  res.send("API is running...");
-});
-
-// Error handling for unknown routes
-app.use((req, res, next) => {
-  res.status(404).json({ success: false, error: "Route not found" });
-});
-
-// Start server
 const PORT = process.env.PORT || 5000;
 
-// Create HTTP server and Socket.IO
+// --- Socket.IO ---
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: process.env.CLIENT_ORIGIN || "http://localhost:5173",
+    origin: process.env.CLIENT_ORIGIN || allowedOrigins,
     methods: ["GET", "POST"],
     credentials: true,
   },
 });
 
-// JWT auth for sockets
 io.use((socket, next) => {
   try {
     const token = socket.handshake.auth?.token || socket.handshake.query?.token;
@@ -80,26 +75,18 @@ io.use((socket, next) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     socket.user = decoded;
     next();
-  } catch (err) {
+  } catch {
     next(new Error("Invalid auth token"));
   }
 });
 
-// Socket handlers
 io.on("connection", (socket) => {
-  // Join/leave conversation rooms
-  socket.on("join_conversation", (conversationId) => {
-    if (conversationId) socket.join(conversationId.toString());
-  });
-  socket.on("leave_conversation", (conversationId) => {
-    if (conversationId) socket.leave(conversationId.toString());
-  });
+  socket.on("join_conversation", (id) => id && socket.join(id.toString()));
+  socket.on("leave_conversation", (id) => id && socket.leave(id.toString()));
 });
 
-// Make io available in routes/controllers
 app.set("io", io);
 
-// Start server
-server.listen(PORT, () => {
-  console.log(`Server running with Socket.IO on port ${PORT}`);
-});
+server.listen(PORT, "0.0.0.0", () =>
+  console.log(`Server running with Socket.IO on port ${PORT}`)
+);
