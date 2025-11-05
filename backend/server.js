@@ -37,7 +37,7 @@ const corsOptions = {
 
 app.use(express.json());
 app.use(cors(corsOptions));
-app.options("*", cors(corsOptions)); // handle mobile preflight
+app.options(cors(corsOptions)); // handle mobile preflight
 app.use(morgan("dev"));
 
 // Routes
