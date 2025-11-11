@@ -4,6 +4,16 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext.jsx";
 import { StudentRoute, ClientRoute, AuthenticatedRoute } from "./components/ProtectedRoute.jsx";
 import Chatbot from "./components/Chatbot.jsx";
+import axios from "axios";
+
+// Configure axios defaults for the entire app
+const API_BASE_URL = import.meta.env.VITE_API_URL || 
+  (import.meta.env.DEV 
+    ? "http://localhost:5000" 
+    : "https://student-freelance-platform-2.onrender.com");
+
+axios.defaults.baseURL = API_BASE_URL;
+console.log('Global axios baseURL set to:', API_BASE_URL);
 
 import TermsAndConditions from "./pages/TernsAndConditions.jsx";
 import Home from "./pages/Home.jsx";

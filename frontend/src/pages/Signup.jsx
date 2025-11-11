@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import API from '../utils/api';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
 const Signup = () => {
@@ -48,10 +48,7 @@ const Signup = () => {
         const newUser = { name, email, password, role };
 
         try {
-            const config = { headers: { 'Content-Type': 'application/json' } };
-            const body = JSON.stringify(newUser);
-
-            const res = await axios.post('http://localhost:5000/api/auth/register', body, config);
+            const res = await API.post('/auth/register', newUser);
 
             console.log('SUCCESS!', res.data);
             setError('');

@@ -81,7 +81,15 @@ const Messages = ({ userType = "student" }) => {
   useEffect(() => {
     if (socketRef.current) return;
     const token = localStorage.getItem('authToken');
-    const s = io('http://localhost:5000', { auth: { token } });
+    
+    // Use the same backend URL logic as API
+    const SOCKET_URL = import.meta.env.VITE_API_URL || 
+      (import.meta.env.DEV 
+        ? "http://localhost:5000" 
+        : "https://student-freelance-platform-2.onrender.com");
+    
+    console.log('Connecting to Socket.IO at:', SOCKET_URL);
+    const s = io(SOCKET_URL, { auth: { token } });
     socketRef.current = s;
   }, []);
 
