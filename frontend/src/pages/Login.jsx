@@ -31,14 +31,23 @@ export default function Login() {
     setIsLoading(true);
 
     try {
+      console.log('Login attempt started');
+      console.log('API Base URL:', import.meta.env.VITE_API_URL || import.meta.env.NEXT_PUBLIC_API_BASE_URL || 'using fallback');
+      
       const result = await login(email, password);
 
+      console.log('Login result:', result);
       if (!result.success) {
         setError(result.error || "Login failed. Please try again.");
       }
       // If successful, the AuthContext will handle navigation
     } catch (error) {
       console.error('Login error:', error);
+      console.error('Error details:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status
+      });
       setError(error.message || "An unexpected error occurred. Please try again.");
     } finally {
       setIsLoading(false);

@@ -1,19 +1,12 @@
 // src/utils/api.js
 import axios from "axios";
 import { tokenUtils } from "./auth";
+import { API_BASE_URL } from "../config.js";
 
-// Base URL configuration
-const baseURL =
-  import.meta.env.VITE_API_URL ||
-  process.env.NEXT_PUBLIC_API_BASE_URL ||
-  (import.meta.env.DEV
-    ? "http://localhost:5000"
-    : "https://student-freelance-platform-2.onrender.com");
-
-console.log('API Base URL:', baseURL);
+console.log('API utility initialized with baseURL:', API_BASE_URL);
 
 const api = axios.create({
-  baseURL,
+  baseURL: API_BASE_URL,
   withCredentials: true,
   timeout: 30000, // 30 seconds timeout for mobile networks
   headers: {

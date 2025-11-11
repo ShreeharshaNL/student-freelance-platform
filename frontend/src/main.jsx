@@ -5,16 +5,7 @@ import { AuthProvider } from "./context/AuthContext.jsx";
 import { StudentRoute, ClientRoute, AuthenticatedRoute } from "./components/ProtectedRoute.jsx";
 import Chatbot from "./components/Chatbot.jsx";
 import axios from "axios";
-
-// Configure axios defaults for the entire app
-const API_BASE_URL = import.meta.env.VITE_API_URL || 
-  (import.meta.env.DEV 
-    ? "http://localhost:5000" 
-    : "https://student-freelance-platform-2.onrender.com");
-
-axios.defaults.baseURL = API_BASE_URL;
-console.log('Global axios baseURL set to:', API_BASE_URL);
-
+import { API_BASE_URL } from "./config.js";
 import TermsAndConditions from "./pages/TernsAndConditions.jsx";
 import Home from "./pages/Home.jsx";
 import Login from "./pages/Login.jsx";
@@ -37,6 +28,10 @@ import ClientActive from "./pages/ClientActive.jsx";
 import ClientProfileView from "./pages/ClientProfileView.jsx";
 import PrivacyPolicy from "./pages/PrivacyPolicy.jsx";
 import "./index.css";
+
+// Configure axios defaults for the entire app
+axios.defaults.baseURL = API_BASE_URL;
+console.log('🚀 Application starting with API URL:', API_BASE_URL);
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>

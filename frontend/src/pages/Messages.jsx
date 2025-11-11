@@ -5,6 +5,7 @@ import { useLocation, useSearchParams } from "react-router-dom";
 import { messagesAPI } from "../utils/messagesAPI";
 import { io } from "socket.io-client";
 import API from "../utils/api";
+import { API_BASE_URL } from "../config.js";
 
 const Messages = ({ userType = "student" }) => {
   const location = useLocation();
@@ -82,14 +83,8 @@ const Messages = ({ userType = "student" }) => {
     if (socketRef.current) return;
     const token = localStorage.getItem('authToken');
     
-    // Use the same backend URL logic as API
-    const SOCKET_URL = import.meta.env.VITE_API_URL || 
-      (import.meta.env.DEV 
-        ? "http://localhost:5000" 
-        : "https://student-freelance-platform-2.onrender.com");
-    
-    console.log('Connecting to Socket.IO at:', SOCKET_URL);
-    const s = io(SOCKET_URL, { auth: { token } });
+    console.log('Connecting to Socket.IO at:', API_BASE_URL);
+    const s = io(API_BASE_URL, { auth: { token } });
     socketRef.current = s;
   }, []);
 

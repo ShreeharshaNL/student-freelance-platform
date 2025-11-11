@@ -1,13 +1,9 @@
 //utils/auth.js
-// API base URL - use the same logic as api.js
-const API_BASE_URL = (
-  import.meta.env.VITE_API_URL ||
-  (import.meta.env.DEV
-    ? "http://localhost:5000"
-    : "https://student-freelance-platform-2.onrender.com")
-) + '/api';
+import { API_BASE_URL } from "../config.js";
 
-console.log('Auth API Base URL:', API_BASE_URL);
+// API base URL
+const AUTH_API_BASE_URL = API_BASE_URL + '/api';
+console.log('Auth API initialized with baseURL:', AUTH_API_BASE_URL);
 
 // Token management utilities
 export const tokenUtils = {
@@ -63,7 +59,7 @@ export const tokenUtils = {
 
 // API request helper
 const apiRequest = async (endpoint, options = {}) => {
-  const url = `${API_BASE_URL}${endpoint}`;
+  const url = `${AUTH_API_BASE_URL}${endpoint}`;
   const token = tokenUtils.getToken();
   
   console.log('Making auth request to:', url);
