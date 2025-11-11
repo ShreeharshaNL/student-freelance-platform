@@ -37,7 +37,7 @@ const corsOptions = {
 
 app.use(express.json());
 app.use(cors(corsOptions));
-app.options(cors(corsOptions)); // handle mobile preflight
+app.options('*', cors(corsOptions)); // handle preflight requests for all routes
 app.use(morgan("dev"));
 
 // Routes
@@ -46,7 +46,7 @@ app.use("/api/user", require("./routes/userRoutes"));
 app.use("/api/profile", require("./routes/profileRoutes"));
 app.use("/api/messages", require("./routes/messagesRoutes"));
 app.use("/api/projects", require("./routes/projectRoutes"));
-app.use("/api/applications", require("./routes/applicationRoutes"));
+app.use("/api/applications", require("./routes/applicationsRoutes"));
 app.use("/api/reviews", require("./routes/reviewRoutes"));
 app.use("/api/submissions", require("./routes/submissionRoutes"));
 app.use("/api/chatbot", require("./routes/chatbotRoutes"));
