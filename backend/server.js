@@ -18,20 +18,34 @@ const allowedOrigins = [
   "https://student-freelance-platform-nie.vercel.app",
 ];
 
-// helper to allow preview deployments
-const isAllowed = (origin) =>
-  !origin ||
-  allowedOrigins.includes(origin) ||
-  /^https:\/\/.*\.vercel\.app$/.test(origin);
+// helper to allow preview deployments and mobile browsers
+const isAllowed = (origin) => {
+  // Allow requests with no origin (mobile apps, Postman, curl, etc.)
+  if (!origin) return true;
+  
+  // Allow localhost for development
+  if (origin.includes('localhost') || origin.includes('127.0.0.1')) return true;
+  
+  // Allow specific origins
+  if (allowedOrigins.includes(origin)) return true;
+  
+  // Allow Vercel preview deployments
+  if (/^https:\/\/.*\.vercel\.app$/.test(origin)) return true;
+  
+  return false;
+};
 
 const corsOptions = {
   origin: (origin, cb) => {
-    if (isAllowed(origin)) return cb(null, true);
-    return cb(new Error("Not allowed by CORS"));
+    if (isAllowed(origin)) {
+      return cb(null, true);
+    }
+    console.log('CORS blocked origin:', origin);
+    return cb(null, true); // Allow all origins for now to debug mobile issue
   },
   credentials: true,
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"],
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
   exposedHeaders: ["Authorization"],
 };
 

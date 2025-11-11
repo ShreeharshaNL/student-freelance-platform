@@ -1,6 +1,13 @@
 //utils/auth.js
-// API base URL
-const API_BASE_URL = 'http://localhost:5000/api';
+// API base URL - use the same logic as api.js
+const API_BASE_URL = (
+  import.meta.env.VITE_API_URL ||
+  (import.meta.env.DEV
+    ? "http://localhost:5000"
+    : "https://student-freelance-platform-2.onrender.com")
+) + '/api';
+
+console.log('Auth API Base URL:', API_BASE_URL);
 
 // Token management utilities
 export const tokenUtils = {
@@ -59,6 +66,8 @@ const apiRequest = async (endpoint, options = {}) => {
   const url = `${API_BASE_URL}${endpoint}`;
   const token = tokenUtils.getToken();
   
+  console.log('Making auth request to:', url);
+  
   const defaultOptions = {
     headers: {
       'Content-Type': 'application/json',
@@ -78,6 +87,8 @@ const apiRequest = async (endpoint, options = {}) => {
   try {
     const response = await fetch(url, config);
     
+    console.log('Auth response status:', response.status);
+    
     // Handle non-JSON responses
     const contentType = response.headers.get('content-type');
     let data;
@@ -91,12 +102,18 @@ const apiRequest = async (endpoint, options = {}) => {
     if (!response.ok) {
       // Extract error message from response
       const errorMessage = data.error || data.message || `HTTP ${response.status}: Request failed`;
+      console.error('Auth API error:', errorMessage);
       throw new Error(errorMessage);
     }
 
+    console.log('Auth request successful');
     return data;
   } catch (error) {
     console.error(`API request failed for ${endpoint}:`, error);
+    // Provide more helpful error message for network errors
+    if (error.message === 'Failed to fetch' || error.name === 'TypeError') {
+      throw new Error('Network error. Please check your internet connection and try again.');
+    }
     throw error;
   }
 };
