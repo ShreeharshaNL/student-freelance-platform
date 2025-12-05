@@ -325,8 +325,16 @@ exports.updateProfile = async (req, res) => {
     for (const k of Object.keys(req.body || {})) {
       if (allowed.has(k) && req.body[k] !== undefined) update[k] = req.body[k];
     }
+    // If there are no fields for the profile model to update,
+    // allow updating the user's `name` directly (frontend sends `name` frequently).
     if (Object.keys(update).length === 0) {
-      return res.status(400).json({ success: false, error: "No valid fields to update." });
+      if (req.body.name && typeof req.body.name === 'string' && req.body.name.trim()) {
+        user.name = req.body.name.trim();
+        await user.save();
+        // proceed to return the fresh profile below (no profile fields changed)
+      } else {
+        return res.status(400).json({ success: false, error: "No valid fields to update." });
+      }
     }
 
     // 3) Apply updates
