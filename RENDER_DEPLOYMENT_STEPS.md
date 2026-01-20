@@ -106,7 +106,7 @@ Click **"Add Environment Variable"** and add these (one by one):
 |-----|-------|
 | `PORT` | `5000` |
 | `NODE_ENV` | `production` |
-| `MONGO_URI` | `mongodb+srv://sfp_user:MyStrong@Pass123@cluster0.xxxxx.mongodb.net/student_freelance_platform?retryWrites=true&w=majority` |
+| `MONGO_URI` | `mongodb+srv://sfp_user:MyStrong%40Pass123@student-freelance-platf.om0bly6.mongodb.net/?appName=student-freelance-platform` |
 | `JWT_SECRET` | `sfpSecret123!` |
 | `JWT_EXPIRE` | `7d` |
 | `CLIENT_URL` | `https://student-freelance-platform-nie.vercel.app` |
