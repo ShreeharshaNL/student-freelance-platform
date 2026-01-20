@@ -21,7 +21,7 @@ const sendChatMessage = async (req, res) => {
 
         // Initialize Gemini AI with Gemini 2.5 Flash
         const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" }); // Updated to 2.5
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
         // Platform context
         const systemPrompt = `You are an AI assistant for a freelance platform that connects students with clients.
