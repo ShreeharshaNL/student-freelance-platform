@@ -3,12 +3,11 @@ import axios from "axios";
 import { tokenUtils } from "./authAPI.js";
 import { API_BASE_URL } from "../config.js";
 
-// Ensure axios uses the same /api prefix the backend mounts routes on
-const AXIOS_BASE = API_BASE_URL.endsWith('/') ? API_BASE_URL + 'api' : API_BASE_URL + '/api';
-console.log('API utility initialized with baseURL:', AXIOS_BASE);
+// API_BASE_URL already includes /api, so use it directly
+console.log('API utility initialized with baseURL:', API_BASE_URL);
 
 const api = axios.create({
-  baseURL: AXIOS_BASE,
+  baseURL: API_BASE_URL,
   withCredentials: true,
   timeout: 30000, // 30 seconds timeout for mobile networks
   headers: {

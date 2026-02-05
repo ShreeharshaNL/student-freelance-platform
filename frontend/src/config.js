@@ -17,8 +17,8 @@ export const getApiUrl = () => {
     window.location.hostname === '127.0.0.1';
   
   const apiUrl = isDevelopment 
-    ? 'http://localhost:5000'
-    : 'https://student-freelance-platform-2.onrender.com';
+    ? 'http://localhost:5000/api'
+    : 'https://student-freelance-platform-2.onrender.com/api';
   
   console.log('Using detected environment URL:', apiUrl, '(isDev:', isDevelopment, ')');
   return apiUrl;
