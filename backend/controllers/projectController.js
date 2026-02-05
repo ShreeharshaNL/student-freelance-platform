@@ -49,9 +49,8 @@ const updateProjectProgress = async (req, res) => {
         });
     }
 };
-const Project = require('../models/projectModel');
+const Project = require('../models/Project');
 const Application = require('../models/Application');
-const { calculateProjectFees } = require('../utils/projectFees');
 
 // @desc    Get projects with filtering, sorting, and pagination
 // @route   GET /api/projects
@@ -351,10 +350,11 @@ const applyToProject = async (req, res) => {
             });
         }
 
-        // Check if student has already applied
-        const hasApplied = project.applications.some(
-            app => app.student.toString() === req.user.id
-        );
+        // Check if student has already applied using Application model (Reference Model)
+        const hasApplied = await Application.findOne({
+            project: req.params.id,
+            student: req.user.id
+        });
         if (hasApplied) {
             return res.status(400).json({
                 success: false,
@@ -372,30 +372,28 @@ const applyToProject = async (req, res) => {
             });
         }
 
-        // Add application
-        project.applications.push({
+        // Create application as a standalone document (Reference Model)
+        const application = await Application.create({
+            project: req.params.id,
             student: req.user.id,
             proposedBudget: Number(proposedBudget),
             timeline,
             coverLetter,
-            questions
+            questions: questions || '',
+            status: 'pending'
         });
 
-        // Update applications count
-        project.applicationsCount = project.applications.length;
+        // Increment project applications count (without storing full application object)
+        project.applicationsCount = (project.applicationsCount || 0) + 1;
         await project.save();
 
-        const populatedProject = await Project.findById(project._id)
-            .populate('applications.student', 'name email skills location');
-
-        // Return the newly added application
-        const newApplication = populatedProject.applications[
-            populatedProject.applications.length - 1
-        ];
+        // Populate the application with student details for response
+        const populatedApplication = await Application.findById(application._id)
+            .populate('student', 'name email skills location');
 
         res.status(201).json({
             success: true,
-            data: newApplication
+            data: populatedApplication
         });
     } catch (error) {
         console.error('Apply to project error:', error);
@@ -505,11 +503,14 @@ const calculateFees = async (req, res) => {
             });
         }
 
-        const fees = calculateProjectFees({
+        // Create a temporary project object to use the calculateFees method
+        const tempProject = new Project({
             budget: Number(budget),
             isFeatured: isFeatured || false,
             isUrgent: isUrgent || false
         });
+
+        const fees = tempProject.calculateFees();
 
         res.json({
             success: true,
@@ -536,18 +537,21 @@ const getMyProjectsWithApplications = async (req, res) => {
             });
         }
 
-        // Get all projects first
+        // Fetch all projects for the client
         const projects = await Project.find({ user: req.user.id })
             .sort('-createdAt');
 
-    // Get all applications for these projects
+        // Fetch all applications for these projects using Application model (Reference Model)
         const projectIds = projects.map(p => p._id);
         const applications = await Application.find({ project: { $in: projectIds } })
             .populate('student', 'name email skills location rating completedProjects portfolio');
 
-        // Map applications to their respective projects
+        // Manual Join: Map applications to their respective projects
+        // Attach the matching applications array to each project object
         const projectsWithApplications = projects.map(project => {
-            const projectApps = applications.filter(app => app.project.toString() === project._id.toString());
+            const projectApps = applications.filter(
+                app => app.project.toString() === project._id.toString()
+            );
             return {
                 ...project.toObject(),
                 applications: projectApps
@@ -589,26 +593,38 @@ const updateApplicationStatus = async (req, res) => {
 
         const applicationId = req.params.id || req.params.applicationId;
 
-        // Find the project containing this application
-        const project = await Project.findOne({
-            'applications._id': applicationId,
-            user: req.user.id
-        });
+        // Find the application directly using Application model (Reference Model)
+        const application = await Application.findById(applicationId).populate('project');
 
-        if (!project) {
+        if (!application) {
             return res.status(404).json({
                 success: false,
-                error: 'Application not found or unauthorized'
+                error: 'Application not found'
             });
         }
 
-        // Update the application status
-        project.applications.id(applicationId).status = status;
-        await project.save();
+        // Verify the user owns the project associated with this application
+        if (application.project.user.toString() !== req.user.id) {
+            return res.status(403).json({
+                success: false,
+                error: 'Not authorized to update this application'
+            });
+        }
+
+        // Update application status
+        application.status = status;
+
+        // If accepting an application, update the project status to 'in-progress'
+        if (status === 'accepted') {
+            application.project.status = 'in-progress';
+            await application.project.save();
+        }
+
+        await application.save();
 
         res.json({
             success: true,
-            data: project.applications.id(applicationId)
+            data: application
         });
     } catch (error) {
         console.error('Update application status error:', error);

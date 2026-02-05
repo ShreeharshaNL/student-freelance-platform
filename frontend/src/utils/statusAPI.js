@@ -18,7 +18,7 @@ export const normalizeStatus = (status) => {
     return 'changes_requested';
   }
 
-  if (['completed', 'done', 'finished'].includes(s)) {
+  if (['completed', 'done', 'finished', 'approved'].includes(s)) {
     return 'completed';
   }
 
@@ -52,7 +52,7 @@ export const getStatusBadgeClass = (status) => {
     completed: 'bg-green-100 text-green-800',
     changes_requested: 'bg-orange-100 text-orange-800',
     rejected: 'bg-red-100 text-red-800',
-    accepted: 'bg-blue-50 text-blue-800',
+    accepted: 'bg-teal-100 text-teal-800',
     pending: 'bg-gray-100 text-gray-800',
     on_hold: 'bg-gray-100 text-gray-800'
   };

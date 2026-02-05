@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import DashboardLayout from '../components/DashboardLayout';
 import { applicationsAPI } from '../utils/applicationsAPI';
 import { useNavigate } from 'react-router-dom';
-import { normalizeStatus } from '../utils/status';
+import { normalizeStatus } from '../utils/statusAPI';
 import ReviewModal from '../components/ReviewModal';
 import ReviewSubmissionModal from '../components/ReviewSubmissionModal';
 import { submissionsAPI } from '../utils/submissionsAPI';

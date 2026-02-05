@@ -3,7 +3,7 @@
 import React, { createContext, useState, useContext, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
-import { authAPI, tokenUtils, setupTokenRefresh, clearTokenRefresh } from "../utils/auth";
+import { authAPI, tokenUtils, setupTokenRefresh, clearTokenRefresh } from "../utils/authAPI";
 
 // ---------- helpers ----------
 const applyAxiosAuthHeader = (token) => {

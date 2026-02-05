@@ -5,7 +5,7 @@ import { projectsAPI } from '../utils/projectsAPI';
 import ReviewModal from '../components/ReviewModal';
 import ReviewSubmissionModal from '../components/ReviewSubmissionModal';
 import { submissionsAPI } from '../utils/submissionsAPI';
-import { normalizeStatus } from '../utils/status';
+import { normalizeStatus } from '../utils/statusAPI';
 
 const ClientProjects = () => {
   const [projects, setProjects] = useState([]);

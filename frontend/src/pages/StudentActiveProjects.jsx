@@ -3,7 +3,7 @@ import DashboardLayout from "../components/DashboardLayout";
 import { projectsAPI } from "../utils/projectsAPI";
 import { messagesAPI } from "../utils/messagesAPI";
 import { useNavigate } from "react-router-dom";
-import { normalizeStatus, getStatusLabel, getStatusBadgeClass } from "../utils/status";
+import { normalizeStatus, getStatusLabel, getStatusBadgeClass } from "../utils/statusAPI";
 import ReviewModal from "../components/ReviewModal";
 import { reviewsAPI } from "../utils/reviewsAPI";
 import SubmitProjectModal from "../components/SubmitProjectModal";

@@ -48,7 +48,7 @@ export const applicationsAPI = {
     // Get all applications for a project
     getProjectApplications: async (projectId) => {
         try {
-            const response = await API.get(`/applications/project/${projectId}`);
+            const response = await API.get(`/projects/${projectId}/applications`);
             console.log('Get project applications response:', response);
             return response;
         } catch (error) {
@@ -60,7 +60,7 @@ export const applicationsAPI = {
     // Get all projects with applications (client)
     getMyProjects: async () => {
         try {
-            const response = await API.get('/projects/my-with-applications');
+            const response = await API.get('/projects/my-projects-with-applications');
             console.log('Get my projects with applications response:', response);
             return response;
         } catch (error) {
@@ -75,8 +75,7 @@ export const applicationsAPI = {
             if (!['accepted', 'rejected'].includes(status)) {
                 throw new Error('Invalid application status');
             }
-            // Backend expects PUT /api/applications/:applicationId with { status }
-            const response = await API.put(`/applications/${applicationId}`, { status });
+            const response = await API.put(`/projects/applications/${applicationId}/status`, { status });
             console.log('Update application status response:', response);
             return response;
         } catch (error) {

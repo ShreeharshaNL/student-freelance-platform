@@ -20,33 +20,11 @@ export const reviewsAPI = {
 
   getMyReviews: async (type = "received") => {
     try {
-      console.log('🔄 ReviewsAPI.getMyReviews called:', {
-        type,
-        endpoint: '/reviews/my-reviews',
-        token: !!localStorage.getItem('token')
-      });
-
       const response = await API.get("/reviews/my-reviews", {
         params: { type },
       });
-
-      console.log('📦 ReviewsAPI raw response:', {
-        status: response.status,
-        success: response.data?.success,
-        hasData: !!response.data?.data,
-        dataLength: response.data?.data?.length
-      });
-
-      if (!response.data.success) {
-        console.error('❌ ReviewsAPI error:', response.data.error);
-      }
-
       return response.data;
     } catch (error) {
-      console.error('❌ ReviewsAPI network error:', {
-        message: error.message,
-        response: error.response?.data
-      });
       throw error;
     }
   },

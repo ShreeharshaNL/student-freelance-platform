@@ -1,8 +1,8 @@
 const Review = require("../models/Review");
 const User = require("../models/User");
-const ClientProfile = require("../models/ClientProfileModel");
-const StudentProfile = require("../models/StudentProfileModel");
-const Project = require("../models/projectModel");
+const ClientProfile = require("../models/ClientProfile");
+const StudentProfile = require("../models/StudentProfile");
+const Project = require("../models/Project");
 
 exports.createReview = async (req, res) => {
   try {
@@ -270,28 +270,24 @@ async function updateUserRating(userId) {
     if (!user) return;
 
     const reviews = await Review.find({ reviewee: userId });
-    
-    if (reviews.length === 0) return;
 
-    const totalRating = reviews.reduce((sum, review) => sum + review.rating, 0);
-    const averageRating = (totalRating / reviews.length).toFixed(1);
+    const count = reviews.length;
+    let averageRating = 0;
+
+    if (count > 0) {
+      const totalRating = reviews.reduce((sum, review) => sum + review.rating, 0);
+      averageRating = (totalRating / count).toFixed(1);
+    }
+
+    const updateData = {
+      rating: parseFloat(averageRating),
+      totalReviews: count,
+    };
 
     if (user.role === "client") {
-      await ClientProfile.findOneAndUpdate(
-        { user: userId },
-        {
-          rating: parseFloat(averageRating),
-          totalReviews: reviews.length,
-        }
-      );
+      await ClientProfile.findOneAndUpdate({ user: userId }, updateData);
     } else if (user.role === "student") {
-      await StudentProfile.findOneAndUpdate(
-        { user: userId },
-        {
-          rating: parseFloat(averageRating),
-          totalReviews: reviews.length,
-        }
-      );
+      await StudentProfile.findOneAndUpdate({ user: userId }, updateData);
     }
   } catch (err) {
     console.error("Error updating user rating:", err);

@@ -1,5 +1,5 @@
 const Submission = require("../models/Submission");
-const Project = require("../models/projectModel");
+const Project = require("../models/Project");
 const Application = require("../models/Application");
 
 exports.createSubmission = async (req, res) => {
@@ -35,14 +35,6 @@ exports.createSubmission = async (req, res) => {
         debug: { projectId, studentId }
       });
     }
-
-    // Log application status for debugging
-    console.log('🔎 Application found:', {
-      _id: application._id,
-      status: application.status,
-      project: application.project,
-      student: application.student
-    });
 
     // Allow resubmission for more statuses
     const allowedStatuses = [
@@ -96,27 +88,17 @@ exports.createSubmission = async (req, res) => {
       { path: "project", select: "title budget" },
     ]);
 
-    console.log('Updating project status to under_review:', projectId);
-    const updatedProject = await Project.findByIdAndUpdate(
+    await Project.findByIdAndUpdate(
       projectId,
       { status: "under_review" },
       { new: true }
     );
-    console.log('Project updated:', { _id: updatedProject._id, status: updatedProject.status });
 
-    // Update application status to under_review
-    console.log('Updating application status to under_review:', { projectId, studentId });
     const updatedApp = await Application.findOneAndUpdate(
       { project: projectId, student: studentId },
       { status: "under_review" },
       { new: true }
     );
-    console.log('Application updated:', { 
-      _id: updatedApp?._id, 
-      status: updatedApp?.status, 
-      project: updatedApp?.project,
-      student: updatedApp?.student 
-    });
 
     res.status(201).json({
       success: true,
@@ -234,23 +216,17 @@ exports.reviewSubmission = async (req, res) => {
         createdBy: clientId,
       };
 
-      const updatedProject = await Project.findByIdAndUpdate(
+      await Project.findByIdAndUpdate(
         submission.project,
         { status: "in_progress" },
         { new: true }
       );
-      console.log('Project updated to in_progress:', { _id: updatedProject._id, status: updatedProject.status });
 
-      // Update application to changes_requested status
-      const updatedApp = await Application.findOneAndUpdate(
+      await Application.findOneAndUpdate(
         { project: submission.project, student: submission.student },
         { status: "changes_requested" },
         { new: true }
       );
-      console.log('Application updated to changes_requested:', { 
-        _id: updatedApp?._id, 
-        status: updatedApp?.status 
-      });
     } else if (action === "reject") {
       submission.status = "rejected";
       submission.feedback = {
@@ -259,23 +235,17 @@ exports.reviewSubmission = async (req, res) => {
         createdBy: clientId,
       };
 
-      const updatedProject = await Project.findByIdAndUpdate(
+      await Project.findByIdAndUpdate(
         submission.project,
         { status: "in_progress" },
         { new: true }
       );
-      console.log('Project updated to in_progress:', { _id: updatedProject._id, status: updatedProject.status });
 
-      // Update application to rejected status
-      const updatedApp = await Application.findOneAndUpdate(
+      await Application.findOneAndUpdate(
         { project: submission.project, student: submission.student },
         { status: "rejected" },
         { new: true }
       );
-      console.log('Application updated to rejected:', { 
-        _id: updatedApp?._id, 
-        status: updatedApp?.status 
-      });
     }
 
     await submission.save();
@@ -326,7 +296,25 @@ exports.deleteSubmission = async (req, res) => {
       });
     }
 
+    // Capture project ID before deleting
+    const projectId = submission.project;
+
+    // Delete the submission
     await submission.deleteOne();
+
+    // Check if any other submissions exist for this project
+    const remainingSubmissions = await Submission.find({ project: projectId });
+    
+    // If no submissions are under review, revert status to 'in_progress'
+    const hasPending = remainingSubmissions.some(s => s.status === 'under_review');
+    
+    if (!hasPending) {
+      await Project.findByIdAndUpdate(projectId, { status: 'in_progress' });
+      await Application.findOneAndUpdate(
+        { project: projectId, student: userId },
+        { status: 'in_progress' }
+      );
+    }
 
     res.status(200).json({
       success: true,

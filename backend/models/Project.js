@@ -116,5 +116,23 @@ const projectSchema = new mongoose.Schema({
     timestamps: true,
 });
 
+// Fee calculation constants
+const FEE_RATES = {
+    featured: 100,
+    urgent: 50,
+    platformPercentage: 5
+};
+
+// Add instance method to calculate fees for a project
+projectSchema.methods.calculateFees = function() {
+    let fees = {
+        featured: this.isFeatured ? FEE_RATES.featured : 0,
+        urgent: this.isUrgent ? FEE_RATES.urgent : 0,
+        platform: (this.budget * FEE_RATES.platformPercentage) / 100
+    };
+    fees.total = fees.featured + fees.urgent + fees.platform;
+    return fees;
+};
+
 const Project = mongoose.model('Project', projectSchema);
 module.exports = Project;

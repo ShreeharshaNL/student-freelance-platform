@@ -19,12 +19,12 @@ export const projectsAPI = {
 
     // Get client's projects
     getMyProjects: async () => {
-        return API.get('/projects/my');
+        return API.get('/projects/my-projects');
     },
 
     // Get client's projects with their applications populated
     getMyProjectsWithApplications: async () => {
-        return API.get('/projects/my-with-applications');
+        return API.get('/projects/my-projects-with-applications');
     },
 
     // Update project
@@ -34,7 +34,7 @@ export const projectsAPI = {
 
     // Submit application
     submitApplication: async (projectId, applicationData) => {
-        return API.post(`/projects/${projectId}/applications`, applicationData);
+        return API.post(`/projects/${projectId}/apply`, applicationData);
     },
 
     // Get project applications (for client)
@@ -55,8 +55,8 @@ export const projectsAPI = {
     },
 
     // Update application status (for client)
-    updateApplicationStatus: async (projectId, applicationId, status) => {
-        return API.put(`/projects/${projectId}/applications/${applicationId}`, { status });
+    updateApplicationStatus: async (applicationId, status) => {
+        return API.put(`/projects/applications/${applicationId}/status`, { status });
     },
 
     // Update project progress (for student)

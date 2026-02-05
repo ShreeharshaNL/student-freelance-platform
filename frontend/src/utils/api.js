@@ -1,6 +1,6 @@
 // src/utils/api.js
 import axios from "axios";
-import { tokenUtils } from "./auth";
+import { tokenUtils } from "./authAPI.js";
 import { API_BASE_URL } from "../config.js";
 
 // Ensure axios uses the same /api prefix the backend mounts routes on

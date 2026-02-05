@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import DashboardLayout from "../components/DashboardLayout";
 import { applicationsAPI } from "../utils/applicationsAPI";
-import { normalizeStatus, getStatusLabel, getStatusBadgeClass } from "../utils/status";
+import { normalizeStatus, getStatusLabel, getStatusBadgeClass } from "../utils/statusAPI";
 
 const StudentApplications = () => {
   const [activeFilter, setActiveFilter] = useState("all");

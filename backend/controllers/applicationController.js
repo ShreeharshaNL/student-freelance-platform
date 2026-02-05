@@ -1,5 +1,5 @@
 const Application = require('../models/Application');
-const Project = require('../models/projectModel');
+const Project = require('../models/Project');
 
 // @desc    Submit application for a project
 // @route   POST /api/applications/project/:projectId
@@ -70,38 +70,33 @@ exports.submitApplication = async (req, res) => {
             });
         }
 
-        try {
-            // Create application
-            const application = await Application.create({
-                project: projectId,
-                student: req.user.id,
-                coverLetter,
-                proposedBudget,
-                timeline,
-                questions: questions || '',
-                status: 'pending' // Set initial status
-            });
+        // Create application
+        const application = await Application.create({
+            project: projectId,
+            student: req.user.id,
+            coverLetter,
+            proposedBudget,
+            timeline,
+            questions: questions || '',
+            status: 'pending' // Set initial status
+        });
 
-            // Increment project applications count
-            await Project.findByIdAndUpdate(projectId, {
-                $inc: { applicationsCount: 1 }
-            });
+        // Increment project applications count
+        await Project.findByIdAndUpdate(projectId, {
+            $inc: { applicationsCount: 1 }
+        });
 
-            // Populate the application with project and student details
-            const populatedApplication = await Application.findById(application._id)
-                .populate('project', 'title budget status')
-                .populate('student', 'name email');
+        // Populate the application with project and student details
+        const populatedApplication = await Application.findById(application._id)
+            .populate('project', 'title budget status')
+            .populate('student', 'name email');
 
-            console.log('Application created successfully:', populatedApplication);
+        console.log('Application created successfully:', populatedApplication);
 
-            res.status(201).json({
-                success: true,
-                data: populatedApplication
-            });
-        } catch (dbError) {
-            console.error('Database error:', dbError);
-            throw new Error('Failed to create application in database');
-        }
+        res.status(201).json({
+            success: true,
+            data: populatedApplication
+        });
     } catch (error) {
         console.error('Submit application error:', error);
         res.status(500).json({
@@ -231,7 +226,7 @@ exports.getMyApplications = async (req, res) => {
 // @access  Private (Application owner only)
 exports.deleteApplication = async (req, res) => {
     try {
-        const applicationId = req.params.applicationId || req.params.id;
+        const applicationId = req.params.id;
 
         const application = await Application.findById(applicationId);
 
@@ -255,7 +250,7 @@ exports.deleteApplication = async (req, res) => {
             $inc: { applicationsCount: -1 }
         });
 
-        await application.remove();
+        await Application.findByIdAndDelete(applicationId);
 
         res.json({
             success: true,
@@ -275,7 +270,7 @@ exports.deleteApplication = async (req, res) => {
 // @access  Private (Project owner only)
 exports.updateApplicationStatus = async (req, res) => {
     try {
-        const applicationId = req.params.applicationId || req.params.id;
+        const applicationId = req.params.id;
         const { status } = req.body;
 
         if (!['accepted', 'rejected'].includes(status)) {

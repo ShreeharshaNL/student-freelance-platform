@@ -1,5 +1,4 @@
-const Conversation = require("../models/Conversation");
-const Message = require("../models/Message");
+const { Conversation, Message } = require("../models/ChatModels");
 const mongoose = require("mongoose");
 
 // Utility to build a deterministic key for the two participants

@@ -22,8 +22,14 @@ const protect = async (req, res, next) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     
     // Attach user to request
-    req.user = await User.findById(decoded.id).select("-password");
+    const user = await User.findById(decoded.id).select("-password");
 
+    // NEW: Check if user actually exists in DB
+    if (!user) {
+      return res.status(401).json({ success: false, error: "User not found" });
+    }
+
+    req.user = user;
     next();
   } catch (err) {
     console.error(err);

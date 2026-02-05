@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import DashboardLayout from "../components/DashboardLayout";
 import { applicationsAPI } from "../utils/applicationsAPI";
-import { getStatusLabel, getStatusBadgeClass } from "../utils/status";
+import { getStatusLabel, getStatusBadgeClass } from "../utils/statusAPI";
 
 const ClientApplications = () => {
   const { projectId } = useParams();

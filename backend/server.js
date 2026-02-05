@@ -55,15 +55,7 @@ app.options('*', cors(corsOptions)); // handle preflight requests for all routes
 app.use(morgan("dev"));
 
 // Routes
-app.use("/api/auth", require("./routes/authRoutes"));
-app.use("/api/user", require("./routes/userRoutes"));
-app.use("/api/profile", require("./routes/profileRoutes"));
-app.use("/api/messages", require("./routes/messagesRoutes"));
-app.use("/api/projects", require("./routes/projectRoutes"));
-app.use("/api/applications", require("./routes/applicationsRoutes"));
-app.use("/api/reviews", require("./routes/reviewRoutes"));
-app.use("/api/submissions", require("./routes/submissionRoutes"));
-app.use("/api/chatbot", require("./routes/chatbotRoutes"));
+app.use('/api', require('./routes'));
 
 app.get("/", (req, res) => res.send("API is running..."));
 app.use((req, res) =>
